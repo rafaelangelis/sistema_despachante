@@ -1,0 +1,28 @@
+{
+ "actions": [],
+ "creation": "2026-01-01 10:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": ["documento", "obrigatorio", "status", "cb_doc", "anexo", "validade", "observacao"],
+ "fields": [
+  {"fieldname": "documento", "fieldtype": "Data", "in_list_view": 1, "label": "Documento", "reqd": 1},
+  {"fieldname": "obrigatorio", "fieldtype": "Check", "in_list_view": 1, "label": "Obrigatorio", "default": "1"},
+  {"fieldname": "status", "fieldtype": "Select", "in_list_view": 1, "label": "Status", "options": "Pendente\nRecebido\nAprovado\nReprovado\nDispensado", "default": "Pendente"},
+  {"fieldname": "cb_doc", "fieldtype": "Column Break"},
+  {"fieldname": "anexo", "fieldtype": "Attach", "label": "Anexo"},
+  {"fieldname": "validade", "fieldtype": "Date", "label": "Validade"},
+  {"fieldname": "observacao", "fieldtype": "Data", "label": "Observacao"}
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-01-01 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Despachante",
+ "name": "OS Documento",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC"
+}

@@ -1,0 +1,94 @@
+{% set cliente = frappe.db.get_value("Cliente", doc.cliente,
+	["nome_completo", "cpf", "rg", "orgao_emissor_rg", "cnh_numero", "logradouro", "numero",
+	 "complemento", "bairro", "cidade", "estado", "cep", "email"], as_dict=True) %}
+{% set veiculo = frappe.db.get_value("Veiculo", doc.veiculo,
+	["placa", "renavam", "chassi", "marca_modelo", "ano_fabricacao", "ano_modelo", "cor"], as_dict=True)
+	if doc.veiculo else None %}
+{% set empresa = frappe.db.get_value("Empresa", doc.empresa, ["razao_social", "cnpj"], as_dict=True)
+	if doc.empresa else None %}
+{% set cfg = frappe.db.get_singles_dict("Configuracao Despachante") %}
+
+<div style="font-family: Arial, Helvetica, sans-serif; font-size: 11pt; line-height: 1.5; color:#111;">
+  <div style="text-align:center; margin-bottom: 18px;">
+    {% if cfg.logo %}<img src="{{ cfg.logo }}" style="max-height:70px;" /><br />{% endif %}
+    <strong style="font-size: 13pt;">{{ cfg.nome_empresa or "DOM CRISTO DESPACHANTE" }}</strong><br />
+    <span style="font-size:9pt;">
+      {{ cfg.cnpj and ("CNPJ: " ~ cfg.cnpj) or "" }}
+      {{ cfg.telefone and (" | Tel.: " ~ cfg.telefone) or "" }}
+      {{ cfg.email and (" | " ~ cfg.email) or "" }}
+    </span><br />
+    <span style="font-size:9pt;">{{ cfg.endereco or "" }}</span>
+  </div>
+
+  <h3 style="text-align:center; text-transform:uppercase; margin: 14px 0 18px;">Procuração particular</h3>
+
+  <p style="text-align:justify;">
+    <strong>OUTORGANTE:</strong>
+    {% if empresa %}
+      <strong>{{ empresa.razao_social }}</strong>, pessoa jurídica de direito privado, inscrita no CNPJ sob o
+      nº {{ empresa.cnpj }}, neste ato representada por
+    {% endif %}
+    <strong>{{ cliente.nome_completo }}</strong>,
+    portador(a) do RG nº {{ cliente.rg or "__________" }} {{ cliente.orgao_emissor_rg and ("(" ~ cliente.orgao_emissor_rg ~ ")") or "" }},
+    inscrito(a) no CPF sob o nº {{ cliente.cpf }},
+    {% if cliente.cnh_numero %}CNH nº {{ cliente.cnh_numero }}, {% endif %}
+    residente e domiciliado(a) na {{ cliente.logradouro or "__________" }}, nº {{ cliente.numero or "____" }}
+    {{ cliente.complemento or "" }}, bairro {{ cliente.bairro or "__________" }},
+    {{ cliente.cidade or "__________" }}/{{ cliente.estado or "SP" }}, CEP {{ cliente.cep or "__________" }}.
+  </p>
+
+  <p style="text-align:justify;">
+    <strong>OUTORGADO:</strong> <strong>{{ cfg.nome_empresa or "DOM CRISTO DESPACHANTE" }}</strong>,
+    inscrita no CNPJ sob o nº {{ cfg.cnpj or "__________" }}, com sede em {{ cfg.endereco or "__________" }}.
+  </p>
+
+  {% if veiculo %}
+  <p style="text-align:justify;">
+    <strong>OBJETO / VEÍCULO:</strong> placa <strong>{{ veiculo.placa }}</strong>,
+    RENAVAM {{ veiculo.renavam or "__________" }}, chassi {{ veiculo.chassi or "__________" }},
+    marca/modelo {{ veiculo.marca_modelo or "__________" }},
+    ano {{ veiculo.ano_fabricacao or "____" }}/{{ veiculo.ano_modelo or "____" }},
+    cor {{ veiculo.cor or "__________" }}.
+  </p>
+  {% endif %}
+
+  <p style="text-align:justify;">
+    <strong>PODERES:</strong> pelo presente instrumento particular de mandato, o(a) OUTORGANTE nomeia e
+    constitui seu(sua) bastante procurador(a) o(a) OUTORGADO(A), a quem confere poderes específicos para
+    representá-lo(a) perante o DETRAN, SENATRAN, órgãos de trânsito, repartições públicas federais,
+    estaduais e municipais, para requerer, assinar, dar entrada e acompanhar os procedimentos relativos a
+    <strong>O.S. {{ doc.name }}</strong>
+    ({{ doc.categoria_servico }}{% if doc.servicos %}:
+    {% for item in doc.servicos %}{{ item.servico }}{% if not loop.last %}; {% endif %}{% endfor %}{% endif %}),
+    podendo assinar requerimentos, retirar e entregar documentos, pagar taxas e emolumentos, e praticar
+    todos os atos necessários ao fiel cumprimento deste mandato, vedados atos que importem em
+    transferência de propriedade sem autorização expressa e por escrito.
+  </p>
+
+  <p style="text-align:justify;">
+    Este mandato é outorgado nos termos dos artigos 653 e seguintes do Código Civil, com validade até a
+    conclusão dos serviços acima, ou até revogação expressa pelo OUTORGANTE.
+  </p>
+
+  <p style="margin-top:26px; text-align:right;">
+    {{ cliente.cidade or "" }}{{ cliente.cidade and ", " or "" }}{{ doc.data_abertura_extenso or "" }}.
+  </p>
+
+  <table style="width:100%; margin-top:48px; font-size:10pt;">
+    <tr>
+      <td style="width:48%; text-align:center; border-top:1px solid #111; padding-top:6px;">
+        {{ cliente.nome_completo }}<br />CPF {{ cliente.cpf }}<br /><span style="font-size:8pt;">OUTORGANTE</span>
+      </td>
+      <td style="width:4%;"></td>
+      <td style="width:48%; text-align:center; border-top:1px solid #111; padding-top:6px;">
+        {{ cfg.nome_empresa or "DOM CRISTO DESPACHANTE" }}<br />CNPJ {{ cfg.cnpj or "__________" }}<br />
+        <span style="font-size:8pt;">OUTORGADO</span>
+      </td>
+    </tr>
+  </table>
+
+  <p style="font-size:8pt; color:#555; margin-top:26px;">
+    Documento gerado pelo sistema DOM Despachante. Assine eletronicamente pelo gov.br (assinador oficial)
+    para validade jurídica.
+  </p>
+</div>

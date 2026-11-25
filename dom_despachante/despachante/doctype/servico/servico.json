@@ -1,0 +1,38 @@
+{
+ "actions": [],
+ "autoname": "field:nome_servico",
+ "creation": "2026-01-01 10:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": ["nome_servico", "categoria", "cb_serv", "orgao", "prazo_dias", "ativo", "sec_valores", "valor_honorario", "valor_taxa", "tab_obs", "observacoes"],
+ "fields": [
+  {"fieldname": "nome_servico", "fieldtype": "Data", "in_list_view": 1, "label": "Servico", "reqd": 1, "unique": 1},
+  {"fieldname": "categoria", "fieldtype": "Select", "in_list_view": 1, "label": "Categoria", "options": "Veiculos\nCNH\nRecurso de Multa\nRecurso de CNH\nNautico\nSCR-BCB\nCorretor", "reqd": 1},
+  {"fieldname": "cb_serv", "fieldtype": "Column Break"},
+  {"fieldname": "orgao", "fieldtype": "Data", "in_list_view": 1, "label": "Orgao", "default": "DETRAN-SP"},
+  {"fieldname": "prazo_dias", "fieldtype": "Int", "label": "Prazo padrao (dias)"},
+  {"fieldname": "ativo", "fieldtype": "Check", "in_list_view": 1, "label": "Ativo", "default": "1"},
+  {"fieldname": "sec_valores", "fieldtype": "Section Break", "label": "Valores padrao"},
+  {"fieldname": "valor_honorario", "fieldtype": "Currency", "in_list_view": 1, "label": "Honorario padrao"},
+  {"fieldname": "valor_taxa", "fieldtype": "Currency", "label": "Taxa padrao do orgao"},
+  {"fieldname": "tab_obs", "fieldtype": "Tab Break", "label": "Observacoes"},
+  {"fieldname": "observacoes", "fieldtype": "Text", "label": "Observacoes"}
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-01-01 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Despachante",
+ "name": "Servico",
+ "owner": "Administrator",
+ "permissions": [
+  {"create": 1, "delete": 1, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "System Manager", "share": 1, "write": 1},
+  {"create": 1, "delete": 0, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "Despachante", "share": 1, "write": 1}
+ ],
+ "search_fields": "nome_servico,categoria,orgao",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "title_field": "nome_servico",
+ "track_changes": 1
+}

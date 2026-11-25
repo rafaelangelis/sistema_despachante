@@ -1,0 +1,73 @@
+# Satelites do sistema DOM: WhatsApp (Evolution API) + automacao (n8n)
+# Subir com:  docker compose -f docker-compose.satelites.yml up -d
+services:
+  postgres_evolution:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: evolution
+      POSTGRES_PASSWORD: ${EVOLUTION_DB_PASSWORD}
+      POSTGRES_DB: evolution
+    volumes:
+      - evolution_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U evolution"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis_evolution:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - evolution_redis:/data
+
+  evolution:
+    image: evoapicloud/evolution-api:v2.3.8
+    restart: unless-stopped
+    depends_on:
+      postgres_evolution:
+        condition: service_healthy
+    ports:
+      - "8081:8080"
+    environment:
+      SERVER_URL: http://evolution:8080
+      AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY}
+      DATABASE_ENABLED: "true"
+      DATABASE_PROVIDER: postgresql
+      DATABASE_CONNECTION_URI: postgresql://evolution:${EVOLUTION_DB_PASSWORD}@postgres_evolution:5432/evolution?schema=public
+      DATABASE_CONNECTION_CLIENT_NAME: evolution_dom
+      CACHE_REDIS_ENABLED: "true"
+      CACHE_REDIS_URI: redis://redis_evolution:6379/6
+      CACHE_REDIS_PREFIX_KEY: evolution_dom
+      CACHE_LOCAL_ENABLED: "false"
+      LOG_LEVEL: ERROR
+    volumes:
+      - evolution_instances:/evolution/instances
+
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      N8N_HOST: ${N8N_HOST}
+      N8N_PORT: "5678"
+      N8N_PROTOCOL: http
+      WEBHOOK_URL: http://${N8N_HOST}:5678/
+      GENERIC_TIMEZONE: America/Sao_Paulo
+      TZ: America/Sao_Paulo
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
+      N8N_DIAGNOSTICS_ENABLED: "false"
+      EVOLUTION_URL: http://evolution:8080
+      EVOLUTION_INSTANCE: ${EVOLUTION_INSTANCE}
+      EVOLUTION_APIKEY: ${EVOLUTION_API_KEY}
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+volumes:
+  evolution_pg:
+  evolution_redis:
+  evolution_instances:
+  n8n_data:

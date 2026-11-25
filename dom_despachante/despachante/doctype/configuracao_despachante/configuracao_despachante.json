@@ -1,0 +1,53 @@
+{
+ "actions": [],
+ "creation": "2026-01-01 10:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "tab_empresa", "nome_empresa", "cnpj", "telefone", "email", "cb_emp", "logo", "endereco",
+  "tab_alertas", "alertar_licenciamento", "alertar_cnh", "dias_alerta", "modo_simulacao",
+  "sec_textos", "texto_alerta_licenciamento", "texto_alerta_cnh",
+  "tab_integracoes", "webhook_url_alertas", "cb_int", "evolution_url", "evolution_instance", "evolution_apikey", "brasilapi_ativo"
+ ],
+ "fields": [
+  {"fieldname": "tab_empresa", "fieldtype": "Tab Break", "label": "Empresa"},
+  {"fieldname": "nome_empresa", "fieldtype": "Data", "label": "Nome da empresa", "default": "DOM CRISTO DESPACHANTE"},
+  {"fieldname": "cnpj", "fieldtype": "Data", "label": "CNPJ"},
+  {"fieldname": "telefone", "fieldtype": "Data", "label": "Telefone"},
+  {"fieldname": "email", "fieldtype": "Data", "label": "E-mail", "options": "Email"},
+  {"fieldname": "cb_emp", "fieldtype": "Column Break"},
+  {"fieldname": "logo", "fieldtype": "Attach Image", "label": "Logo (para impressos)"},
+  {"fieldname": "endereco", "fieldtype": "Small Text", "label": "Endereco completo"},
+  {"fieldname": "tab_alertas", "fieldtype": "Tab Break", "label": "Alertas"},
+  {"fieldname": "alertar_licenciamento", "fieldtype": "Check", "label": "Alertar vencimento de licenciamento", "default": "1"},
+  {"fieldname": "alertar_cnh", "fieldtype": "Check", "label": "Alertar vencimento de CNH", "default": "1"},
+  {"fieldname": "dias_alerta", "fieldtype": "Data", "label": "Antecedencias (dias, separados por virgula)", "default": "45,30,15,5"},
+  {"fieldname": "modo_simulacao", "fieldtype": "Check", "label": "Modo simulacao (nao envia WhatsApp, so registra no log)", "default": "1"},
+  {"fieldname": "sec_textos", "fieldtype": "Section Break", "label": "Textos das mensagens"},
+  {"fieldname": "texto_alerta_licenciamento", "fieldtype": "Small Text", "label": "Texto - licenciamento", "default": "Ola {nome}, o licenciamento do veiculo {placa} vence em {data} (faltam {dias} dias). Podemos ajudar com o licenciamento? DOM Cristo Despachante."},
+  {"fieldname": "texto_alerta_cnh", "fieldtype": "Small Text", "label": "Texto - CNH", "default": "Ola {nome}, sua CNH vence em {data} (faltam {dias} dias). Quer que a gente cuide da renovacao? DOM Cristo Despachante."},
+  {"fieldname": "tab_integracoes", "fieldtype": "Tab Break", "label": "Integracoes"},
+  {"fieldname": "webhook_url_alertas", "fieldtype": "Data", "label": "Webhook do n8n para WhatsApp", "description": "Ex.: http://n8n:5678/webhook/alerta-dom"},
+  {"fieldname": "cb_int", "fieldtype": "Column Break"},
+  {"fieldname": "evolution_url", "fieldtype": "Data", "label": "URL da Evolution API", "default": "http://evolution:8080"},
+  {"fieldname": "evolution_instance", "fieldtype": "Data", "label": "Instancia do WhatsApp"},
+  {"fieldname": "evolution_apikey", "fieldtype": "Password", "label": "API key da Evolution"},
+  {"fieldname": "brasilapi_ativo", "fieldtype": "Check", "label": "Usar BrasilAPI para preencher CEP/CNPJ", "default": "1"}
+ ],
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-01-01 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Despachante",
+ "name": "Configuracao Despachante",
+ "owner": "Administrator",
+ "permissions": [
+  {"create": 1, "delete": 0, "email": 1, "print": 1, "read": 1, "role": "System Manager", "share": 1, "write": 1},
+  {"create": 1, "delete": 0, "email": 1, "print": 1, "read": 1, "role": "Despachante", "share": 1, "write": 1}
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}
