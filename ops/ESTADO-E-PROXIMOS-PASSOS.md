@@ -6,7 +6,7 @@ Documento para retomar o trabalho em qualquer máquina, com ou sem o histórico 
 
 | O quê | Onde |
 |---|---|
-| Código (app Frappe + operação) | repositório privado `rafaelangelis/sistema_despachante`, branch `main` |
+| Código (app Frappe + operação) | repositório **público** `rafaelangelis/sistema_despachante`, branch `main` |
 | Guia completo (referência) | `ops/GUIA-PRODUCAO.md` |
 | Instalação linear do zero em outra máquina | `ops/RUNBOOK-OUTRA-MAQUINA.md` |
 | Especificação original (planilha da DOM) | `ops/especificacao/SISTEMA-DOM.xlsx` |
@@ -27,7 +27,7 @@ Documento para retomar o trabalho em qualquer máquina, com ou sem o histórico 
 | # | Pendência | Observação |
 |---|---|---|
 | 1 | Instalar em produção (VM do Proxmox) | Siga `ops/RUNBOOK-OUTRA-MAQUINA.md`. Nada foi executado em Docker ainda: o app nunca rodou em um bench real |
-| 2 | Decidir repositório privado + token **ou** público | Enquanto for privado, o build da imagem custom exige token de leitura |
+| ~~2~~ | ~~Decidir repositório privado ou público~~ | **Resolvido em 25/11/2026: público.** Build e máquinas novas não exigem token |
 | 3 | Confirmar o calendário de licenciamento no site do DETRAN | O de SP/2026 foi semeado a partir da planilha; regra muda a cada ano e pode variar por UF |
 | 4 | Financeiro | Contas a receber, repasse de taxas ao órgão, inadimplência. Opção: módulo Accounts do ERPNext, ou DocType de Recebimento ligado à O.S. |
 | 5 | Portal do cliente / status por WhatsApp | Web Form nativo do Frappe resolve sem código |
@@ -38,7 +38,7 @@ Documento para retomar o trabalho em qualquer máquina, com ou sem o histórico 
 
 ## Decisões pendentes (precisam da DOM)
 
-1. **Repositório público ou privado?** Público simplifica build e máquinas novas; o código é MIT e não contém segredo.
+1. ~~Repositório público ou privado?~~ **Resolvido: público** (código MIT, sem segredo e sem dado pessoal). Build e clone não exigem credencial.
 2. **SCR-BCB**: é serviço que a DOM pretende vender? Só é integrável via birô licenciado (Serasa/SPC/Quod) — o SCR do Banco Central é de acesso restrito a instituições autorizadas e ao titular. Definir antes de qualquer linha de código.
 3. **WhatsApp**: Evolution API (não oficial, risco de banimento, grátis) ou Cloud API oficial da Meta (template aprovado, custo por conversa). A escolha afeta o volume de disparo permitido.
 4. **Campo "login do gov.br" com alerta de 45 dias** (planilha): é alerta de senha/conta gov.br ou de validade da CNH? Hoje o sistema trata validade de CNH; senha gov.br nunca deve ser armazenada.

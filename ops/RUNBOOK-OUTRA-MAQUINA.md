@@ -94,9 +94,9 @@ Portas que precisam estar acessíveis na LAN: 8080, 5678, 8081 (nenhuma exposta 
 
 ## Etapa C — gerar a imagem com o app embutido
 
-O repositório é privado, então o build (que roda **dentro do container**, sem suas credenciais) precisa de um token de leitura. Três caminhos, escolha um:
+> **O repositório é PÚBLICO desde 25/11/2026.** Use o caminho **C2** (o de baixo): sem token, sem credencial. O caminho C1 fica aqui só como fallback, caso um dia o repositório volte a ser privado.
 
-**C1 (recomendado) token só no build, fora do git:**
+**C1 (fallback, só se o repositório voltar a ser privado) token só no build, fora do git:**
 
 ```bash
 cd ~
@@ -124,7 +124,20 @@ docker build \
   --file=images/custom/Containerfile .
 ```
 
-**C2 tornar o repositório público** (`gh repo edit rafaelangelis/sistema_despachante --visibility public --accept-visibility-change-consequences`). O código é MIT e não tem segredo — isso elimina o token do build, do clone e de qualquer máquina nova. Depois é só usar `ops/apps.json` como está.
+**C2 (padrão hoje) repositório público — sem token:**
+
+```bash
+git clone https://github.com/rafaelangelis/sistema_despachante.git
+git clone https://github.com/frappe/frappe_docker.git
+cd ~/frappe_docker
+export APPS_JSON_BASE64=$(base64 -w 0 ~/sistema_despachante/ops/apps.json)
+docker build \
+  --build-arg=FRAPPE_PATH=https://github.com/frappe/frappe \
+  --build-arg=FRAPPE_BRANCH=version-15 \
+  --build-arg=APPS_JSON_BASE64="$APPS_JSON_BASE64" \
+  --tag=dom-erp:1.0.0 \
+  --file=images/custom/Containerfile .
+```
 
 **C3 se o build não funcionar com token:** clone o app no host e monte dentro de um container bench de desenvolvimento; nesse caso avise que eu ajusto o `Containerfile`.
 

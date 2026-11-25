@@ -111,13 +111,13 @@ git remote add origin https://github.com/SEU-USUARIO/NOVO-REPO.git
 git push -u origin main
 ```
 
-O repositório é **privado**, e é isso que define a Etapa 3: o `docker build` clona o repo de dentro do container, sem as suas credenciais. Duas saídas — token de leitura (`Contents: read`, fine-grained) em um `ops/apps.local.json` que não vai para o git (caminho C1 do `RUNBOOK-OUTRA-MAQUINA.md`), ou tornar o repositório público:
+O repositório é **público** desde 25/11/2026, então o build da imagem (que clona o repo de dentro do container, sem as suas credenciais) funciona direto com `ops/apps.json`. Se um dia ele voltar a ser privado, use a variante descrita no caminho C1 do `RUNBOOK-OUTRA-MAQUINA.md` (token de leitura em `ops/apps.local.json`, fora do git).
 
 ```bash
 gh repo edit rafaelangelis/sistema_despachante --visibility public --accept-visibility-change-consequences
 ```
 
-Com o repositório público, `ops/apps.json` já funciona como está e o token deixa de existir em qualquer máquina.
+Com o repositório público, `ops/apps.json` já funciona como está — o token deixa de existir em qualquer máquina.
 
 ---
 
