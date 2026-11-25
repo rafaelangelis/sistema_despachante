@@ -1,5 +1,7 @@
 # Runbook — terminar a instalação em outra máquina
 
+> Siga este arquivo de cima para baixo. Estado atual e decisões pendentes: ops/ESTADO-E-PROXIMOS-PASSOS.md. Referência técnica completa: ops/GUIA-PRODUCAO.md. Especificação original da DOM: ops/especificacao/SISTEMA-DOM.xlsx.
+
 Estado em 25/11/2026: o app está no repositório privado `rafaelangelis/sistema_despachante` (branch `main`, commit `77f7cda`, 52 arquivos). **Nada foi instalado em produção ainda** — nem Docker, nem Frappe, nem banco. Tudo abaixo é a partir do zero na máquina de destino.
 
 Decisões já tomadas (não precisa decidir de novo):

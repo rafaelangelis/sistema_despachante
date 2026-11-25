@@ -1,5 +1,8 @@
 # DOM Despachante — esqueleto pronto para produção
 
+> **COMECE POR ops/RUNBOOK-OUTRA-MAQUINA.md** se o objetivo é instalar do zero em outra máquina: é a versão linear, com checkpoints de verificação.
+> Estado atual, pendências e como retomar o projeto: ops/ESTADO-E-PROXIMOS-PASSOS.md. Este arquivo é a referência completa (arquitetura, ciclo de mudança, roadmap, links e troubleshooting).
+
 Sistema de O.S. para despachante (veículos, CNH, recursos de multa, náutico, SCR-BCB, corretor) montado sobre **Frappe v15** com quatro peças maduras reaproveitadas, em vez de tudo do zero.
 
 ## O que já está pronto nesta pasta
@@ -11,11 +14,14 @@ sistema_despachante/            <- repositorio (privado)
 ├── README.md                    <- README do app
 ├── dom_despachante/             <- codigo do app (DocTypes, hooks, tasks, print format)
 └── ops/                         <- tudo de operacao/deploy
-    ├── GUIA-PRODUCAO.md         <- este guia
-    ├── apps.json                <- lista de apps para o build da imagem custom
-    ├── docker-compose.satelites.yml  <- WhatsApp (Evolution API) + n8n
-    ├── .env.exemplo             <- copie para .env e troque os valores
+    ├── RUNBOOK-OUTRA-MAQUINA.md    <- COMECE AQUI: instalacao do zero, passo a passo
+    ├── ESTADO-E-PROXIMOS-PASSOS.md <- estado atual, pendencias e como retomar
+    ├── GUIA-PRODUCAO.md            <- referencia completa (arquitetura, ciclo, links)
+    ├── apps.json                   <- lista de apps para o build da imagem custom
+    ├── docker-compose.satelites.yml <- WhatsApp (Evolution API) + n8n
+    ├── .env.exemplo                <- copie para .env e troque os valores
     ├── n8n/alerta-licenciamento.json <- workflow pronto para importar
+    ├── especificacao/SISTEMA-DOM.xlsx <- planilha original da DOM
     └── scripts/build-imagem.sh + backup.sh
 ```
 
@@ -87,23 +93,31 @@ docker compose -f pwd.yml down
 
 ---
 
-## Etapa 2 — Publicar o app no seu GitHub
+## Etapa 2 — Repositório (já feito em 25/11/2026)
+
+O código já está no repositório privado **`rafaelangelis/sistema_despachante`**, branch `main`, com o app na raiz e todo o material de operação em `ops/`. Para instalar em uma máquina nova, basta clonar:
 
 ```bash
-cd ~/sistema_despachante      # pasta que contém pyproject.toml
-git init
-git add .
-git commit -m "app dom_despachante: DocTypes, alertas, procuracao"
+git clone https://github.com/rafaelangelis/sistema_despachante.git
+```
+
+Só use o bloco abaixo se um dia precisar publicar em outro repositório:
+
+```bash
+cd ~/sistema_despachante
+git init && git add . && git commit -m "app dom_despachante"
 git branch -M main
-git remote add origin https://github.com/SEU-USUARIO/dom_despachante.git
+git remote add origin https://github.com/SEU-USUARIO/NOVO-REPO.git
 git push -u origin main
 ```
 
-Agora edite `~/sistema_despachante/ops/apps.json` e troque `SEU-USUARIO` pela sua conta. Se o repo for privado, crie um **token de leitura** (GitHub → Settings → Developer settings → Fine-grained tokens, escopo `Contents: read`) e use a URL:
+O repositório é **privado**, e é isso que define a Etapa 3: o `docker build` clona o repo de dentro do container, sem as suas credenciais. Duas saídas — token de leitura (`Contents: read`, fine-grained) em um `ops/apps.local.json` que não vai para o git (caminho C1 do `RUNBOOK-OUTRA-MAQUINA.md`), ou tornar o repositório público:
 
-```json
-[{ "url": "https://SEU_TOKEN@github.com/SEU-USUARIO/dom_despachante", "branch": "main" }]
+```bash
+gh repo edit rafaelangelis/sistema_despachante --visibility public --accept-visibility-change-consequences
 ```
+
+Com o repositório público, `ops/apps.json` já funciona como está e o token deixa de existir em qualquer máquina.
 
 ---
 
@@ -255,6 +269,7 @@ Depois veja **Error Log** no sistema. Quando estiver certo, desligue o modo simu
 ```bash
 chmod +x ~/sistema_despachante/ops/scripts/backup.sh
 sudo crontab -e
+# troque SEU_USUARIO pelo usuario da VM
 # 0 2 * * * SITE=despacho.dom.local COMPOSE_DIR=/home/SEU_USUARIO/frappe_docker /home/SEU_USUARIO/sistema_despachante/ops/scripts/backup.sh >> /var/log/dom-backup.log 2>&1
 ```
 
