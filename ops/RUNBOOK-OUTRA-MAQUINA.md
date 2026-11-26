@@ -2,7 +2,7 @@
 
 > Siga este arquivo de cima para baixo. Estado atual e decisões pendentes: ops/ESTADO-E-PROXIMOS-PASSOS.md. Referência técnica completa: ops/GUIA-PRODUCAO.md. Especificação original da DOM: ops/especificacao/SISTEMA-DOM.xlsx.
 
-Estado em 25/11/2026: o app está no repositório privado `rafaelangelis/sistema_despachante` (branch `main`, commit `77f7cda`, 52 arquivos). **Nada foi instalado em produção ainda** — nem Docker, nem Frappe, nem banco. Tudo abaixo é a partir do zero na máquina de destino.
+Estado em 25/11/2026: o app está no repositório **público** `rafaelangelis/sistema_despachante` (branch `main`). **Produção ainda não foi instalada**, mas o app já rodou de ponta a ponta num Frappe v15 real em Docker no WSL (site criado, 12 DocTypes, sementes, regras de Cliente/Veículo/O.S., procuração e alertas em simulação testados). Tudo abaixo é a partir do zero na máquina de destino. Para desenvolver/testar no Windows sem VM, veja o **Apêndice — rodar no WSL** no fim deste arquivo.
 
 Decisões já tomadas (não precisa decidir de novo):
 
@@ -114,14 +114,8 @@ JSON
 # garanta que ele não entra no git
 grep -q 'apps.local.json' .gitignore || echo 'ops/apps.local.json' >> .gitignore
 
-cd ~/frappe_docker
-export APPS_JSON_BASE64=$(base64 -w 0 ~/sistema_despachante/ops/apps.local.json)
-docker build \
-  --build-arg=FRAPPE_PATH=https://github.com/frappe/frappe \
-  --build-arg=FRAPPE_BRANCH=version-15 \
-  --build-arg=APPS_JSON_BASE64="$APPS_JSON_BASE64" \
-  --tag=dom-erp:1.0.0 \
-  --file=images/custom/Containerfile .
+APPS_JSON=~/sistema_despachante/ops/apps.local.json \
+  ~/sistema_despachante/ops/scripts/build-imagem.sh ~/frappe_docker dom-erp:1.0.0
 ```
 
 **C2 (padrão hoje) repositório público — sem token:**
@@ -129,22 +123,32 @@ docker build \
 ```bash
 git clone https://github.com/rafaelangelis/sistema_despachante.git
 git clone https://github.com/frappe/frappe_docker.git
+chmod +x ~/sistema_despachante/ops/scripts/*.sh
+~/sistema_despachante/ops/scripts/build-imagem.sh ~/frappe_docker dom-erp:1.0.0
+```
+
+O script faz, por baixo:
+
+```bash
 cd ~/frappe_docker
-export APPS_JSON_BASE64=$(base64 -w 0 ~/sistema_despachante/ops/apps.json)
 docker build \
   --build-arg=FRAPPE_PATH=https://github.com/frappe/frappe \
   --build-arg=FRAPPE_BRANCH=version-15 \
-  --build-arg=APPS_JSON_BASE64="$APPS_JSON_BASE64" \
+  --build-arg=PYTHON_VERSION=3.11.9 \
+  --build-arg=DEBIAN_BASE=bookworm \
+  --secret=id=apps_json,src=$HOME/sistema_despachante/ops/apps.json \
   --tag=dom-erp:1.0.0 \
   --file=images/custom/Containerfile .
 ```
+
+> **Atenção (mudou no frappe_docker):** o `apps.json` agora vai como **build secret** (`--secret id=apps_json`). O antigo `--build-arg=APPS_JSON_BASE64` é **ignorado sem erro** e a imagem sai só com o `frappe`. O padrão também virou Python 3.14 (Frappe v16); a v15 precisa de Python 3.10–3.12.
 
 **C3 se o build não funcionar com token:** clone o app no host e monte dentro de um container bench de desenvolvimento; nesse caso avise que eu ajusto o `Containerfile`.
 
 Verificação do build:
 
 ```bash
-docker run --rm dom-erp:1.0.0 ls /home/frappe/frappe-bench/apps
+docker run --rm --entrypoint ls dom-erp:1.0.0 /home/frappe/frappe-bench/apps
 # esperado: frappe  dom_despachante
 ```
 
@@ -156,19 +160,23 @@ Se `dom_despachante` não estiver lá, o clone falhou dentro do build (token/URL
 
 ```bash
 cd ~/frappe_docker
-cp example.env .env      # se existir custom/example.env, prefira ele
+cp example.env .env
+cp ~/sistema_despachante/ops/frappe-overrides/compose.dom.yaml overrides/
 ```
 
-Edite o `.env`:
+Edite o `.env` (troque o conteúdo por este):
 
 ```env
+# O compose.yaml sozinho nao tem banco nem redis: os overrides abaixo sao obrigatorios.
+# Com COMPOSE_FILE aqui, todo "docker compose --project-name dom ..." ja usa todos eles.
+COMPOSE_FILE=compose.yaml:overrides/compose.mariadb.yaml:overrides/compose.redis.yaml:overrides/compose.noproxy.yaml:overrides/compose.dom.yaml
 CUSTOM_IMAGE=dom-erp
 CUSTOM_TAG=1.0.0
-PULL_POLICY=missing
+PULL_POLICY=never
+# senha do root do MariaDB (o compose.mariadb.yaml usa DB_PASSWORD como MYSQL_ROOT_PASSWORD)
 DB_PASSWORD=troque-por-senha-forte
-DB_ROOT_PASSWORD=troque-por-outra-senha-forte
 FRAPPE_SITE_NAME_HEADER=despacho.dom.local
-LETSENCRYPT_EMAIL=ti@dom.local
+HTTP_PUBLISH_PORT=8080
 ```
 
 ```bash
@@ -180,7 +188,7 @@ docker compose --project-name dom exec backend \
     --mariadb-user-host-login-scope='%' \
     --admin-password 'SENHA-DO-ADMINISTRATOR' \
     --db-root-username root \
-    --db-root-password 'SENHA-DB-ROOT' \
+    --db-root-password 'A-MESMA-DO-DB_PASSWORD' \
     --install-app dom_despachante
 
 docker compose --project-name dom exec backend bench use despacho.dom.local
@@ -299,7 +307,7 @@ Rode uma vez na mão e confirme que o `.tar.gz` aparece em `/var/backups/dom-des
 docker compose --project-name dom ps
 docker compose --project-name dom logs backend --tail 200
 docker compose --project-name dom exec backend bench --site despacho.dom.local list-apps
-docker run --rm dom-erp:1.0.0 ls /home/frappe/frappe-bench/apps
+docker run --rm --entrypoint ls dom-erp:1.0.0 /home/frappe/frappe-bench/apps
 ```
 
 Com esses quatro retornos eu identifico se o problema é imagem, banco, site ou app.
@@ -310,13 +318,65 @@ Com esses quatro retornos eu identifico se o problema é imagem, banco, site ou 
 
 ```bash
 cd ~/sistema_despachante && git pull
-cd ~/frappe_docker
-export APPS_JSON_BASE64=$(base64 -w 0 ~/sistema_despachante/ops/apps.local.json)
-docker build --build-arg=FRAPPE_PATH=https://github.com/frappe/frappe \
-  --build-arg=FRAPPE_BRANCH=version-15 --build-arg=APPS_JSON_BASE64="$APPS_JSON_BASE64" \
-  --tag=dom-erp:1.0.1 --file=images/custom/Containerfile .
+cd ~/frappe_docker && git pull
+~/sistema_despachante/ops/scripts/build-imagem.sh ~/frappe_docker dom-erp:1.0.1
 sed -i 's/^CUSTOM_TAG=.*/CUSTOM_TAG=1.0.1/' ~/frappe_docker/.env
+cd ~/frappe_docker
 docker compose --project-name dom up -d
 docker compose --project-name dom exec backend bench --site despacho.dom.local migrate
 docker compose --project-name dom restart backend scheduler queue-short queue-long
 ```
+
+> Se o build reaproveitar o clone antigo do app (camada em cache), rode-o com `--no-cache` ou acrescente `--build-arg=CACHE_BUST=$(date +%s)` no `docker build` do script.
+
+---
+
+## Apêndice — rodar no WSL (Windows, desenvolvimento/teste)
+
+Testado em 25/11/2026 num Windows 10 com WSL2 + Ubuntu 24.04 (systemd ligado). Usa **Docker Engine dentro do WSL**, não Docker Desktop. É o mesmo caminho das Etapas C e D, com dois ajustes: a porta fica em `localhost` do Windows, e o código do app é montado dentro dos containers, então você edita e testa sem gerar imagem nova.
+
+```bash
+# 1) Docker dentro do WSL (uma vez)
+curl -fsSL https://get.docker.com | sudo sh
+sudo usermod -aG docker "$USER"      # feche e abra o terminal do WSL
+sudo systemctl enable --now docker
+
+# 2) Código + imagem (igual à Etapa C, caminho C2)
+cd ~
+git clone https://github.com/rafaelangelis/sistema_despachante.git
+git clone https://github.com/frappe/frappe_docker.git
+chmod +x ~/sistema_despachante/ops/scripts/*.sh
+~/sistema_despachante/ops/scripts/build-imagem.sh ~/frappe_docker dom-erp:1.0.0   # 15-30 min
+
+# 3) Compose com o override de desenvolvimento
+cd ~/frappe_docker
+cp example.env .env
+cp ~/sistema_despachante/ops/frappe-overrides/compose.dom*.yaml overrides/
+```
+
+No `.env`, use o mesmo conteúdo da Etapa D, trocando a linha `COMPOSE_FILE` por esta (acrescenta o `compose.dom-dev.yaml`) e adicionando `DOM_APP_SRC` com o caminho **absoluto** do clone (rode `echo $HOME` para saber o seu):
+
+```env
+COMPOSE_FILE=compose.yaml:overrides/compose.mariadb.yaml:overrides/compose.redis.yaml:overrides/compose.noproxy.yaml:overrides/compose.dom.yaml:overrides/compose.dom-dev.yaml
+DOM_APP_SRC=/home/SEU_USUARIO/sistema_despachante
+```
+
+> Não use `~` no `DOM_APP_SRC`: com `sudo docker compose` ele vira `/root`, o Docker cria uma pasta vazia e a monta por cima do app — o site passa a responder 502.
+
+Depois siga a Etapa D a partir do `docker compose --project-name dom up -d` (use `set-config host_name http://localhost:8080`). O sistema abre no navegador do Windows em **http://localhost:8080**.
+
+Ciclo de desenvolvimento no WSL:
+
+```bash
+cd ~/frappe_docker
+# mudou só Python/Jinja:
+docker compose --project-name dom restart backend scheduler queue-short queue-long
+# mudou DocType (JSON), patches ou hooks:
+docker compose --project-name dom exec backend bench --site despacho.dom.local migrate
+```
+
+Dicas que custaram tempo na primeira instalação:
+
+- Do PowerShell, rodar `wsl -e bash -c "..."` com aspas aninhadas quebra fácil; prefira abrir o terminal do Ubuntu ou mandar um `.sh` para o `wsl -e bash arquivo.sh`.
+- `docker run --rm dom-erp:1.0.0 ls ...` **sem** `--entrypoint ls` mostra a saída do entrypoint e parece que o app não está na imagem.
+- O WSL encaminha as portas para o `localhost` do Windows: confira antes que 8080/5678/8081 não estejam em uso no Windows.

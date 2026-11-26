@@ -11,6 +11,7 @@ Documento para retomar o trabalho em qualquer máquina, com ou sem o histórico 
 | Instalação linear do zero em outra máquina | `ops/RUNBOOK-OUTRA-MAQUINA.md` |
 | Especificação original (planilha da DOM) | `ops/especificacao/SISTEMA-DOM.xlsx` |
 | Cópia de trabalho nesta máquina (Windows) | `C:\Users\Administrator\Desktop\sistema_despachante` |
+| Ambiente de desenvolvimento rodando (WSL) | Ubuntu 24.04 no WSL: `~/sistema_despachante` + `~/frappe_docker`, em `http://localhost:8080` (passo a passo no Apêndice do runbook) |
 
 ## O que já está feito
 
@@ -21,12 +22,19 @@ Documento para retomar o trabalho em qualquer máquina, com ou sem o histórico 
 - **Print Format** de procuração particular em PDF/Jinja.
 - **Operação**: `apps.json`, `docker-compose.satelites.yml` (Evolution `v2.3.8` + n8n), workflow n8n importável, scripts de build e backup, `.env.exemplo`.
 - **Sementes na instalação**: papéis `Despachante`/`Atendente`, 14 serviços, calendário de licenciamento SP/2026 (vindo da planilha).
+- **Primeira execução real (25/11/2026, Docker no WSL)**: `bench new-site --install-app` passou; 12 DocTypes, sementes e papéis conferidos. Teste de fumaça aprovado: Cliente (CPF válido aceito, inválido e duplicado recusados), Veículo (placa normalizada, vencimento calculado pelo calendário), O.S. (checklist de 5 documentos, totais, prazo), procuração renderizada, alertas de CNH e licenciamento em simulação. Bugs encontrados e corrigidos nessa execução:
+  - 7 DocTypes sem controller `.py` (o Frappe exige um por DocType) — a instalação parava no primeiro;
+  - `patches.txt` sem a seção `[pre_model_sync]`;
+  - Calendário Licenciamento: `autoname: field:chave` roda antes do `validate`, então a chave passou a ser montada em `before_naming`;
+  - procuração usava `frappe.db.get_singles_dict`, que o Jinja seguro do Frappe bloqueia (trocado por `frappe.get_doc`);
+  - **O.S. zerava honorário/taxa ao salvar**: `fetch_from` sem `fetch_if_empty` sobrescrevia o valor digitado com o do catálogo (que vem zerado).
+- **Build/compose atualizados** para o frappe_docker atual (apps.json como build secret, Python 3.11, MariaDB 10.6, `COMPOSE_FILE` no `.env`).
 
 ## O que ainda NÃO foi feito (em ordem)
 
 | # | Pendência | Observação |
 |---|---|---|
-| 1 | Instalar em produção (VM do Proxmox) | Siga `ops/RUNBOOK-OUTRA-MAQUINA.md`. Nada foi executado em Docker ainda: o app nunca rodou em um bench real |
+| 1 | Instalar em produção (VM do Proxmox) | Siga `ops/RUNBOOK-OUTRA-MAQUINA.md`. Etapas C e D já validadas no WSL; falta a VM, a Etapa E (Evolution + n8n) e o restante do aceite |
 | ~~2~~ | ~~Decidir repositório privado ou público~~ | **Resolvido em 25/11/2026: público.** Build e máquinas novas não exigem token |
 | 3 | Confirmar o calendário de licenciamento no site do DETRAN | O de SP/2026 foi semeado a partir da planilha; regra muda a cada ano e pode variar por UF |
 | 4 | Financeiro | Contas a receber, repasse de taxas ao órgão, inadimplência. Opção: módulo Accounts do ERPNext, ou DocType de Recebimento ligado à O.S. |
@@ -45,8 +53,9 @@ Documento para retomar o trabalho em qualquer máquina, com ou sem o histórico 
 
 ## Riscos conhecidos
 
-- O app **nunca rodou em Frappe real**. Os JSONs foram validados sintaticamente e a correspondência DocType↔pasta foi conferida (`Ordem de Servico` → `ordem_de_servico/`), mas erros de schema só aparecem no `bench migrate` / `new-site`.
-- `bench new-site --install-app` é o primeiro ponto de falha provável; o segundo é a rede Docker entre Frappe, n8n e Evolution.
+- O app já roda num Frappe v15 real (WSL), mas a **integração Frappe → n8n → Evolution ainda não foi testada**: a rede Docker entre eles (`dom-net`) é agora o ponto de falha mais provável.
+- O frappe_docker muda sem aviso (em 2026 trocou o jeito de passar o `apps.json` e o Python padrão). Se o build sair sem o `dom_despachante`, compare `images/custom/Containerfile` com `ops/scripts/build-imagem.sh`.
+- Os 14 serviços semeados vêm com honorário e taxa zerados: ajuste os valores antes de abrir O.S. de verdade.
 - Escritório pequeno, um site: sem multi-tenancy. Multi-empresa exigiria Frappe multisite.
 
 ## Como retomar o trabalho com o Claude
@@ -62,12 +71,9 @@ Se você levar apenas este repositório para outra máquina, o contexto necessá
 ```bash
 # atualizar o sistema depois de mudança no código
 cd ~/sistema_despachante && git pull
-cd ~/frappe_docker
-export APPS_JSON_BASE64=$(base64 -w 0 ~/sistema_despachante/ops/apps.local.json)
-docker build --build-arg=FRAPPE_PATH=https://github.com/frappe/frappe \
-  --build-arg=FRAPPE_BRANCH=version-15 --build-arg=APPS_JSON_BASE64="$APPS_JSON_BASE64" \
-  --tag=dom-erp:1.0.1 --file=images/custom/Containerfile .
+~/sistema_despachante/ops/scripts/build-imagem.sh ~/frappe_docker dom-erp:1.0.1
 sed -i 's/^CUSTOM_TAG=.*/CUSTOM_TAG=1.0.1/' ~/frappe_docker/.env
+cd ~/frappe_docker
 docker compose --project-name dom up -d
 docker compose --project-name dom exec backend bench --site despacho.dom.local migrate
 

@@ -1,0 +1,7 @@
+# Override do DOM Despachante para o frappe_docker.
+# Copie para ~/frappe_docker/overrides/ e liste no COMPOSE_FILE do .env (ver RUNBOOK, Etapa D).
+# O compose.mariadb.yaml atual do frappe_docker usa MariaDB 11.8 (pensado para Frappe v16);
+# a versao suportada oficialmente pelo Frappe v15 e a 10.6.
+services:
+  db:
+    image: mariadb:10.6
