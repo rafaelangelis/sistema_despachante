@@ -304,13 +304,35 @@ docker compose --project-name dom exec backend \
 
 ## Etapa G — backup
 
+Cada execução cria **uma pasta datada** com banco, arquivos públicos, arquivos privados, `site_config` e a `encryption_key` do site. Sem a `encryption_key`, um restore não consegue ler as senhas salvas, como a chave da Evolution. As pastas com mais de 30 dias são apagadas (`RETENCAO_DIAS`).
+
 ```bash
-chmod +x ~/sistema_despachante/ops/scripts/backup.sh
-sudo crontab -e
-# 0 2 * * * SITE=despacho.dom.local COMPOSE_DIR=/home/SEU_USUARIO/frappe_docker /home/SEU_USUARIO/sistema_despachante/ops/scripts/backup.sh >> /var/log/dom-backup.log 2>&1
+chmod +x ~/sistema_despachante/ops/scripts/*.sh
+sudo mkdir -p /var/backups/dom-despachante && sudo chown "$USER" /var/backups/dom-despachante
+
+# rode uma vez na mão
+SITE=despacho.dom.local ~/sistema_despachante/ops/scripts/backup.sh
+# esperado: "Backup concluido: /var/backups/dom-despachante/despacho.dom.local/AAAAMMDD-HHMMSS (...)"
+
+crontab -e     # crontab do SEU usuário (ele está no grupo docker); não precisa de sudo
+# 0 2 * * * SITE=despacho.dom.local COMPOSE_DIR=/home/SEU_USUARIO/frappe_docker /home/SEU_USUARIO/sistema_despachante/ops/scripts/backup.sh >> /home/SEU_USUARIO/dom-backup.log 2>&1
 ```
 
-Rode uma vez na mão e confirme que o `.tar.gz` aparece em `/var/backups/dom-despachante`.
+> A pasta contém CPF, CNH e endereços (LGPD) e a chave de criptografia: os arquivos saem com permissão `600`. **Copie para fora da VM** (outro disco, NAS, nuvem com criptografia): um backup que só existe na mesma VM não protege contra perda do disco.
+
+**Teste de restore** (faça uma vez, e depois de cada mudança grande). Ele restaura num site *separado*, sem tocar no de produção:
+
+```bash
+P=$(ls -d /var/backups/dom-despachante/despacho.dom.local/*/ | tail -1)
+DB_ROOT_PASSWORD='o DB_PASSWORD do .env' ~/sistema_despachante/ops/scripts/restore.sh "$P" restore.dom.local
+cd ~/frappe_docker
+docker compose --project-name dom exec backend bench --site restore.dom.local list-apps
+# confira contagens (Cliente, Veiculo, O.S.) no console e depois apague o site de teste:
+docker compose --project-name dom exec backend bench drop-site restore.dom.local \
+  --db-root-username root --db-root-password 'o DB_PASSWORD do .env' --force --no-backup
+```
+
+Para **recuperar a produção numa máquina nova**: faça as Etapas B a D (sem o `new-site`) e rode o `restore.sh` com o nome do site de produção. O site é criado, recebe o banco, os arquivos e a `encryption_key`, e passa pelo `migrate`.
 
 ---
 
