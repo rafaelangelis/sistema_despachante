@@ -31,6 +31,9 @@ def _telefone_whatsapp(cliente):
 		return "", ""
 	doc = frappe.get_doc("Cliente", cliente)
 	nome = (doc.nome_completo or "").split(" ")[0].title()
+	if doc.get("nao_enviar_whatsapp") or doc.get("anonimizado"):
+		# oposicao do titular (LGPD): nenhum alerta nem aviso de O.S.
+		return "", nome
 	telefones = [t for t in (doc.telefones or []) if t.whatsapp and t.numero]
 	if not telefones:
 		return "", nome
@@ -64,6 +67,8 @@ def enviar_alertas_licenciamento():
 	config = _config()
 	if not config.alertar_licenciamento:
 		return
+	# a ordem dos jobs diarios nao e garantida com varios workers: garante a virada aqui tambem
+	atualizar_exercicio_veiculos()
 	texto_padrao = config.texto_alerta_licenciamento or (
 		"Ola {nome}, o licenciamento do veiculo {placa} vence em {data} (faltam {dias} dias)."
 	)
@@ -120,6 +125,81 @@ def enviar_alertas_cnh():
 				nome=nome, data=format_date(cliente.cnh_validade), dias=dias
 			)
 			_enviar(mensagem, numero, "cnh_{0}d_{1}".format(dias, cliente.name))
+
+
+def atualizar_exercicio_veiculos():
+	"""Leva cada veiculo para o exercicio (ano) corrente e recalcula o vencimento.
+
+	Sem isso um veiculo cadastrado em 2026 ficaria com vencimento em 2026 para sempre
+	e nunca mais geraria alerta. Roda diariamente, antes dos alertas.
+	"""
+	from frappe.utils import getdate
+
+	ano = getdate(today()).year
+	nomes = frappe.get_all(
+		"Veiculo",
+		filters={"exercicio_licenciamento": ["<", ano]},
+		pluck="name",
+	)
+	atualizados = 0
+	for nome in nomes:
+		try:
+			doc = frappe.get_doc("Veiculo", nome)
+			doc.exercicio_licenciamento = ano
+			doc.flags.ignore_permissions = True
+			doc.save()
+			atualizados += 1
+		except Exception:
+			frappe.log_error(frappe.get_traceback(), "Falha ao virar exercicio do veiculo {0}".format(nome))
+	frappe.db.commit()
+	return atualizados
+
+
+def verificar_calendario_proximo_ano():
+	"""A partir de novembro, avisa (sininho) Despachantes se falta o calendario do ano seguinte.
+
+	Roda semanalmente. Lista so as UFs que tem veiculo cadastrado.
+	"""
+	from frappe.utils import getdate
+
+	hoje = getdate(today())
+	if hoje.month < 11:
+		return []
+	proximo = hoje.year + 1
+	ufs = [
+		r.uf_emplacamento
+		for r in frappe.get_all("Veiculo", fields=["uf_emplacamento"], distinct=True)
+		if r.uf_emplacamento
+	]
+	faltando = [uf for uf in sorted(set(ufs)) if not frappe.db.exists("Calendario Licenciamento", {"uf": uf, "ano": proximo})]
+	if not faltando:
+		return []
+	assunto = "Falta o calendario de licenciamento {0} para: {1}".format(proximo, ", ".join(faltando))
+	corpo = (
+		"Sem o calendario oficial, os vencimentos de {0} serao ESTIMADOS pelo calendario anterior. "
+		"Cadastre em Calendario Licenciamento (ou use 'Copiar calendario' e ajuste pelo site do DETRAN)."
+	).format(proximo)
+	usuarios = set(
+		frappe.get_all(
+			"Has Role",
+			filters={"role": ["in", ["Despachante", "System Manager"]], "parenttype": "User"},
+			pluck="parent",
+		)
+	) - {"Guest"}
+	for usuario in usuarios:
+		if not frappe.db.get_value("User", usuario, "enabled"):
+			continue
+		frappe.get_doc(
+			{
+				"doctype": "Notification Log",
+				"for_user": usuario,
+				"type": "Alert",
+				"document_type": "Calendario Licenciamento",
+				"subject": assunto,
+				"email_content": corpo,
+			}
+		).insert(ignore_permissions=True)
+	return faltando
 
 
 def _registrar_historico(veiculo, tipo, dias, resultado):

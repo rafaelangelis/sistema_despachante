@@ -1,0 +1,251 @@
+{
+ "charts": [
+  {
+   "chart_name": "O.S. por status",
+   "label": "O.S. por status"
+  },
+  {
+   "chart_name": "O.S. abertas por mes",
+   "label": "O.S. abertas por mes"
+  },
+  {
+   "chart_name": "Recebimentos por mes",
+   "label": "Recebimentos por mes"
+  }
+ ],
+ "content": "[{\"id\": \"h1\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Hoje no despachante</b></span>\", \"col\": 12}}, {\"id\": \"nc0\", \"type\": \"number_card\", \"data\": {\"number_card_name\": \"O.S. em aberto\", \"col\": 4}}, {\"id\": \"nc1\", \"type\": \"number_card\", \"data\": {\"number_card_name\": \"O.S. atrasadas\", \"col\": 4}}, {\"id\": \"nc2\", \"type\": \"number_card\", \"data\": {\"number_card_name\": \"Licenciamentos em 30 dias\", \"col\": 4}}, {\"id\": \"nc3\", \"type\": \"number_card\", \"data\": {\"number_card_name\": \"CNH vencendo em 30 dias\", \"col\": 4}}, {\"id\": \"nc4\", \"type\": \"number_card\", \"data\": {\"number_card_name\": \"Total a receber\", \"col\": 4}}, {\"id\": \"nc5\", \"type\": \"number_card\", \"data\": {\"number_card_name\": \"Recebido hoje\", \"col\": 4}}, {\"id\": \"h2\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Atalhos</b></span>\", \"col\": 12}}, {\"id\": \"sc0\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Nova O.S.\", \"col\": 4}}, {\"id\": \"sc1\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Ordens de servico\", \"col\": 4}}, {\"id\": \"sc2\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Clientes\", \"col\": 4}}, {\"id\": \"sc3\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Veiculos\", \"col\": 4}}, {\"id\": \"sc4\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Contas a Receber\", \"col\": 4}}, {\"id\": \"sc5\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Caixa do dia\", \"col\": 4}}, {\"id\": \"ch0\", \"type\": \"chart\", \"data\": {\"chart_name\": \"O.S. por status\", \"col\": 6}}, {\"id\": \"ch1\", \"type\": \"chart\", \"data\": {\"chart_name\": \"O.S. abertas por mes\", \"col\": 12}}, {\"id\": \"ch2\", \"type\": \"chart\", \"data\": {\"chart_name\": \"Recebimentos por mes\", \"col\": 6}}, {\"id\": \"h3\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Cadastros e relatorios</b></span>\", \"col\": 12}}, {\"id\": \"cd0\", \"type\": \"card\", \"data\": {\"card_name\": \"Cadastros\", \"col\": 3}}, {\"id\": \"cd1\", \"type\": \"card\", \"data\": {\"card_name\": \"Atendimento\", \"col\": 3}}, {\"id\": \"cd2\", \"type\": \"card\", \"data\": {\"card_name\": \"Financeiro\", \"col\": 3}}, {\"id\": \"cd3\", \"type\": \"card\", \"data\": {\"card_name\": \"Configuracao\", \"col\": 3}}]",
+ "creation": "2026-11-25 23:15:10.856924",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "hide_custom": 0,
+ "icon": "file",
+ "idx": 0,
+ "indicator_color": "green",
+ "is_hidden": 0,
+ "label": "Despachante",
+ "links": [
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Cadastros",
+   "link_count": 3,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Cliente",
+   "link_count": 0,
+   "link_to": "Cliente",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Empresa",
+   "link_count": 0,
+   "link_to": "Empresa",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Veiculo",
+   "link_count": 0,
+   "link_to": "Veiculo",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Atendimento",
+   "link_count": 2,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Ordem de Servico",
+   "link_count": 0,
+   "link_to": "Ordem de Servico",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Recebimento",
+   "link_count": 0,
+   "link_to": "Recebimento",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Financeiro",
+   "link_count": 3,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Contas a Receber",
+   "link_count": 0,
+   "link_to": "Contas a Receber",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Caixa Recebimentos",
+   "link_count": 0,
+   "link_to": "Caixa Recebimentos",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Taxas a Repassar",
+   "link_count": 0,
+   "link_to": "Taxas a Repassar",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Configuracao",
+   "link_count": 3,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Servico",
+   "link_count": 0,
+   "link_to": "Servico",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Calendario Licenciamento",
+   "link_count": 0,
+   "link_to": "Calendario Licenciamento",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Configuracao Despachante",
+   "link_count": 0,
+   "link_to": "Configuracao Despachante",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2026-11-25 23:15:10.856924",
+ "modified_by": "Administrator",
+ "module": "Despachante",
+ "name": "Despachante",
+ "number_cards": [
+  {
+   "label": "O.S. em aberto",
+   "number_card_name": "O.S. em aberto"
+  },
+  {
+   "label": "O.S. atrasadas",
+   "number_card_name": "O.S. atrasadas"
+  },
+  {
+   "label": "Licenciamentos em 30 dias",
+   "number_card_name": "Licenciamentos em 30 dias"
+  },
+  {
+   "label": "CNH vencendo em 30 dias",
+   "number_card_name": "CNH vencendo em 30 dias"
+  },
+  {
+   "label": "Total a receber",
+   "number_card_name": "Total a receber"
+  },
+  {
+   "label": "Recebido hoje",
+   "number_card_name": "Recebido hoje"
+  }
+ ],
+ "owner": "Administrator",
+ "public": 1,
+ "quick_lists": [],
+ "roles": [],
+ "sequence_id": 1.0,
+ "shortcuts": [
+  {
+   "doc_view": "New",
+   "label": "Nova O.S.",
+   "link_to": "Ordem de Servico",
+   "type": "DocType"
+  },
+  {
+   "doc_view": "",
+   "label": "Ordens de servico",
+   "link_to": "Ordem de Servico",
+   "type": "DocType"
+  },
+  {
+   "doc_view": "",
+   "label": "Clientes",
+   "link_to": "Cliente",
+   "type": "DocType"
+  },
+  {
+   "doc_view": "",
+   "label": "Veiculos",
+   "link_to": "Veiculo",
+   "type": "DocType"
+  },
+  {
+   "doc_view": "",
+   "label": "Contas a Receber",
+   "link_to": "Contas a Receber",
+   "report_ref_doctype": "Ordem de Servico",
+   "type": "Report"
+  },
+  {
+   "doc_view": "",
+   "label": "Caixa do dia",
+   "link_to": "Caixa Recebimentos",
+   "report_ref_doctype": "Recebimento",
+   "type": "Report"
+  }
+ ],
+ "title": "Despachante"
+}

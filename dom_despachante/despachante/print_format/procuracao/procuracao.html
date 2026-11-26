@@ -6,7 +6,7 @@
 	if doc.veiculo else None %}
 {% set empresa = frappe.db.get_value("Empresa", doc.empresa, ["razao_social", "cnpj"], as_dict=True)
 	if doc.empresa else None %}
-{% set cfg = frappe.db.get_singles_dict("Configuracao Despachante") %}
+{% set cfg = frappe.get_doc("Configuracao Despachante") %}
 
 <div style="font-family: Arial, Helvetica, sans-serif; font-size: 11pt; line-height: 1.5; color:#111;">
   <div style="text-align:center; margin-bottom: 18px;">

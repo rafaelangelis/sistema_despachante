@@ -8,7 +8,7 @@
  "field_order": [
   "tab_ident", "placa", "final_placa", "renavam", "chassi", "situacao",
   "cb_ident", "proprietario", "proprietario_empresa", "uf_emplacamento", "municipio_emplacamento", "data_aquisicao",
-  "tab_licenciamento", "exercicio_licenciamento", "data_vencimento_licenciamento", "alerta_enviado_em",
+  "tab_licenciamento", "exercicio_licenciamento", "data_vencimento_licenciamento", "vencimento_estimado", "alerta_enviado_em",
   "tab_especificacoes", "marca_modelo", "tipo_veiculo", "categoria", "combustivel", "cor",
   "cb_espec", "ano_fabricacao", "ano_modelo", "numero_motor", "carroceria",
   "sec_pesados", "capacidade", "potencia_cilindrada", "peso_bruto", "cmt", "eixos", "lotacao",
@@ -30,6 +30,7 @@
   {"fieldname": "tab_licenciamento", "fieldtype": "Tab Break", "label": "Licenciamento"},
   {"fieldname": "exercicio_licenciamento", "fieldtype": "Int", "in_list_view": 1, "label": "Exercicio do licenciamento"},
   {"fieldname": "data_vencimento_licenciamento", "fieldtype": "Date", "in_list_view": 1, "label": "Vencimento do licenciamento", "read_only": 1},
+  {"fieldname": "vencimento_estimado", "fieldtype": "Check", "label": "Vencimento estimado (sem calendario oficial do ano)", "read_only": 1, "description": "Calculado pelo calendario do ano anterior. Sera recalculado automaticamente quando o calendario do ano for cadastrado."},
   {"fieldname": "alerta_enviado_em", "fieldtype": "Small Text", "label": "Historico de alertas", "read_only": 1},
   {"fieldname": "tab_especificacoes", "fieldtype": "Tab Break", "label": "Especificacoes"},
   {"fieldname": "marca_modelo", "fieldtype": "Data", "in_global_search": 1, "in_list_view": 1, "label": "Marca / modelo"},
@@ -56,7 +57,7 @@
  "links": [
   {"link_doctype": "Ordem de Servico", "link_fieldname": "veiculo"}
  ],
- "modified": "2026-01-01 10:00:00.000000",
+ "modified": "2026-11-25 23:30:00.000000",
  "modified_by": "Administrator",
  "module": "Despachante",
  "name": "Veiculo",
@@ -64,7 +65,7 @@
  "permissions": [
   {"create": 1, "delete": 1, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "System Manager", "share": 1, "write": 1},
   {"create": 1, "delete": 0, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "Despachante", "share": 1, "write": 1},
-  {"create": 1, "delete": 0, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "Atendente", "share": 1, "write": 1}
+  {"create": 1, "delete": 0, "email": 1, "export": 0, "print": 1, "read": 1, "report": 1, "role": "Atendente", "share": 1, "write": 1}
  ],
  "search_fields": "placa,chassi,renavam,marca_modelo",
  "sort_field": "modified",

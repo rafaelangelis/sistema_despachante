@@ -2,7 +2,9 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import add_days, getdate, nowdate
+from frappe.utils import add_days, flt, getdate, nowdate
+
+from dom_despachante.financeiro import aplicar_financeiro, total_recebido
 
 CHECKLIST_PADRAO = {
 	"Veiculos": [
@@ -59,6 +61,11 @@ class OrdemdeServico(Document):
 		self.definir_conclusao()
 		self.formatar_data_abertura()
 
+	def on_update(self):
+		from dom_despachante.notificacoes import ao_mudar_status
+
+		ao_mudar_status(self)
+
 	def definir_responsavel(self):
 		if not self.funcionario_responsavel:
 			self.funcionario_responsavel = frappe.session.user
@@ -81,13 +88,38 @@ class OrdemdeServico(Document):
 	def calcular_totais(self):
 		honorarios = 0.0
 		taxas = 0.0
+		taxas_pagas = 0.0
 		for item in self.servicos or []:
 			qtd = item.quantidade or 1
 			honorarios += (item.valor_honorario or 0) * qtd
-			taxas += (item.valor_taxa or 0) * qtd
+			taxa_item = (item.valor_taxa or 0) * qtd
+			taxas += taxa_item
+			if item.taxa_paga:
+				taxas_pagas += taxa_item
+				if not item.data_taxa_paga:
+					item.data_taxa_paga = nowdate()
+			else:
+				item.data_taxa_paga = None
 		self.total_honorarios = honorarios
 		self.total_taxas = taxas
 		self.total_geral = honorarios + taxas
+		self.total_taxas_pagas = taxas_pagas
+		self.taxas_a_repassar = taxas - taxas_pagas
+		self.validar_total_contra_recebido()
+		aplicar_financeiro(self)
+
+	def validar_total_contra_recebido(self):
+		"""Nao deixa reduzir a O.S. abaixo do que o cliente ja pagou (geraria saldo negativo escondido)."""
+		if self.is_new():
+			return
+		recebido = total_recebido(self.name)
+		if recebido and flt(self.total_geral, 2) < recebido:
+			frappe.throw(
+				_("O total da O.S. ({0}) ficaria menor que o ja recebido do cliente ({1}). Cancele o recebimento excedente antes.").format(
+					frappe.format_value(self.total_geral, {"fieldtype": "Currency"}),
+					frappe.format_value(recebido, {"fieldtype": "Currency"}),
+				)
+			)
 
 	def definir_prazos(self):
 		if not self.prazo:

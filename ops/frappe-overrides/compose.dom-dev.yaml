@@ -1,0 +1,16 @@
+# SO PARA DESENVOLVIMENTO (ex.: WSL). Nao use em producao.
+# Monta o clone local do repositorio dentro dos containers, entao mudancas no codigo
+# valem sem rebuild da imagem (reinicie os containers; para mudanca de DocType rode bench migrate).
+# Exige DOM_APP_SRC no .env com caminho ABSOLUTO do clone (ex.: /home/rafael/sistema_despachante).
+# Nao use "~": com sudo ele vira /root, o Docker cria uma pasta vazia e monta por cima do app (site da 502).
+x-app-mount: &app_mount
+  volumes:
+    - sites:/home/frappe/frappe-bench/sites
+    - ${DOM_APP_SRC:?defina DOM_APP_SRC no .env com o caminho absoluto do clone}:/home/frappe/frappe-bench/apps/dom_despachante
+
+services:
+  backend: *app_mount
+  scheduler: *app_mount
+  queue-short: *app_mount
+  queue-long: *app_mount
+  websocket: *app_mount

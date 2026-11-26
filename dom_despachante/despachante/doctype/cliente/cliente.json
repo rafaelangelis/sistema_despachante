@@ -13,7 +13,8 @@
   "cb_cnh", "cnh_espelho", "cnh_codigo_seguranca", "cnh_orgao_emissor", "cnh_data_emissao",
   "tab_endereco", "cep", "logradouro", "numero", "complemento", "bairro", "cidade", "estado",
   "tab_vinculos", "empresas",
-  "tab_obs", "observacoes"
+  "tab_obs", "observacoes",
+  "sec_lgpd", "nao_enviar_whatsapp", "data_oposicao_whatsapp", "cb_lgpd", "anonimizado", "data_anonimizacao"
  ],
  "fields": [
   {"fieldname": "tab_dados", "fieldtype": "Tab Break", "label": "Dados pessoais"},
@@ -53,14 +54,20 @@
   {"fieldname": "tab_vinculos", "fieldtype": "Tab Break", "label": "Empresas"},
   {"fieldname": "empresas", "fieldtype": "Table", "label": "Empresas vinculadas", "options": "Vinculo Empresa"},
   {"fieldname": "tab_obs", "fieldtype": "Tab Break", "label": "Observacoes"},
-  {"fieldname": "observacoes", "fieldtype": "Text", "label": "Observacoes"}
+  {"fieldname": "observacoes", "fieldtype": "Text", "label": "Observacoes"},
+  {"fieldname": "sec_lgpd", "fieldtype": "Section Break", "label": "Privacidade (LGPD)"},
+  {"fieldname": "nao_enviar_whatsapp", "fieldtype": "Check", "label": "Cliente pediu para NAO receber mensagens no WhatsApp", "description": "Alertas de vencimento e avisos de O.S. deixam de ser enviados para este cliente."},
+  {"fieldname": "data_oposicao_whatsapp", "fieldtype": "Date", "label": "Data do pedido", "read_only": 1, "depends_on": "nao_enviar_whatsapp"},
+  {"fieldname": "cb_lgpd", "fieldtype": "Column Break"},
+  {"fieldname": "anonimizado", "fieldtype": "Check", "label": "Dados pessoais anonimizados", "read_only": 1, "no_copy": 1},
+  {"fieldname": "data_anonimizacao", "fieldtype": "Datetime", "label": "Anonimizado em", "read_only": 1, "no_copy": 1, "depends_on": "anonimizado"}
  ],
  "index_web_pages_for_search": 1,
  "links": [
   {"link_doctype": "Veiculo", "link_fieldname": "proprietario"},
   {"link_doctype": "Ordem de Servico", "link_fieldname": "cliente"}
  ],
- "modified": "2026-01-01 10:00:00.000000",
+ "modified": "2026-11-26 00:20:00.000000",
  "modified_by": "Administrator",
  "module": "Despachante",
  "name": "Cliente",
@@ -68,7 +75,7 @@
  "permissions": [
   {"create": 1, "delete": 1, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "System Manager", "share": 1, "write": 1},
   {"create": 1, "delete": 0, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "Despachante", "share": 1, "write": 1},
-  {"create": 1, "delete": 0, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "Atendente", "share": 1, "write": 1}
+  {"create": 1, "delete": 0, "email": 1, "export": 0, "print": 1, "read": 1, "report": 1, "role": "Atendente", "share": 1, "write": 1}
  ],
  "search_fields": "nome_completo,cpf,cnh_numero",
  "sort_field": "modified",

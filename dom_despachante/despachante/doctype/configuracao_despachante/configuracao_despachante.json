@@ -8,6 +8,7 @@
   "tab_empresa", "nome_empresa", "cnpj", "telefone", "email", "cb_emp", "logo", "endereco",
   "tab_alertas", "alertar_licenciamento", "alertar_cnh", "dias_alerta", "modo_simulacao",
   "sec_textos", "texto_alerta_licenciamento", "texto_alerta_cnh",
+  "sec_status_os", "notificar_status_os", "status_notificados", "texto_status_os",
   "tab_integracoes", "webhook_url_alertas", "cb_int", "evolution_url", "evolution_instance", "evolution_apikey", "brasilapi_ativo"
  ],
  "fields": [
@@ -27,6 +28,10 @@
   {"fieldname": "sec_textos", "fieldtype": "Section Break", "label": "Textos das mensagens"},
   {"fieldname": "texto_alerta_licenciamento", "fieldtype": "Small Text", "label": "Texto - licenciamento", "default": "Ola {nome}, o licenciamento do veiculo {placa} vence em {data} (faltam {dias} dias). Podemos ajudar com o licenciamento? DOM Cristo Despachante."},
   {"fieldname": "texto_alerta_cnh", "fieldtype": "Small Text", "label": "Texto - CNH", "default": "Ola {nome}, sua CNH vence em {data} (faltam {dias} dias). Quer que a gente cuide da renovacao? DOM Cristo Despachante."},
+  {"fieldname": "sec_status_os", "fieldtype": "Section Break", "label": "Aviso de andamento da O.S. ao cliente", "description": "Quando a O.S. muda para um dos status abaixo, o cliente recebe uma mensagem no WhatsApp (respeita o modo simulacao)."},
+  {"fieldname": "notificar_status_os", "fieldtype": "Check", "label": "Avisar o cliente quando a O.S. mudar de status", "default": "0"},
+  {"fieldname": "status_notificados", "fieldtype": "Small Text", "label": "Status que geram aviso (um por linha)", "default": "Aguardando orgao\nConcluida", "depends_on": "notificar_status_os"},
+  {"fieldname": "texto_status_os", "fieldtype": "Small Text", "label": "Texto - andamento da O.S.", "depends_on": "notificar_status_os", "description": "Campos: {nome}, {os}, {categoria}, {placa}, {situacao}", "default": "Ola {nome}, sua ordem de servico {os} ({categoria}{placa}) {situacao}. DOM Cristo Despachante."},
   {"fieldname": "tab_integracoes", "fieldtype": "Tab Break", "label": "Integracoes"},
   {"fieldname": "webhook_url_alertas", "fieldtype": "Data", "label": "Webhook do n8n para WhatsApp", "description": "Ex.: http://n8n:5678/webhook/alerta-dom"},
   {"fieldname": "cb_int", "fieldtype": "Column Break"},
@@ -38,7 +43,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-01-01 10:00:00.000000",
+ "modified": "2026-11-26 00:10:00.000000",
  "modified_by": "Administrator",
  "module": "Despachante",
  "name": "Configuracao Despachante",

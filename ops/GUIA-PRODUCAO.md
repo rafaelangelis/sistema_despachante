@@ -134,16 +134,20 @@ chmod +x scripts/*.sh
 Por baixo, o script faz exatamente isto (documentado em <https://github.com/frappe/frappe_docker>):
 
 ```bash
-export APPS_JSON_BASE64=$(base64 -w 0 apps.json)
 docker build \
   --build-arg=FRAPPE_PATH=https://github.com/frappe/frappe \
   --build-arg=FRAPPE_BRANCH=version-15 \
-  --build-arg=APPS_JSON_BASE64=$APPS_JSON_BASE64 \
+  --build-arg=PYTHON_VERSION=3.11.9 \
+  --build-arg=DEBIAN_BASE=bookworm \
+  --secret=id=apps_json,src=$HOME/sistema_despachante/ops/apps.json \
+  --build-arg=CACHE_BUST=$(date +%s) \
   --tag=dom-erp:1.0.0 \
   --file=images/custom/Containerfile .
 ```
 
-O próprio frappe_docker gera o Dockerfile a partir do `APPS_JSON` e instala `frappe` + `dom_despachante` no bench da imagem.
+O frappe_docker lê o `apps.json` (passado como *build secret*) e instala `frappe` + `dom_despachante` no bench da imagem.
+
+> **Mudou no frappe_docker (verificado em 25/11/2026):** o antigo `--build-arg=APPS_JSON_BASE64` é **ignorado sem erro** — a imagem sai só com o `frappe`. E o padrão da imagem virou Python 3.14 / Debian trixie (pensado para a v16); o Frappe v15 exige Python 3.10–3.12, por isso `PYTHON_VERSION=3.11.9` + `DEBIAN_BASE=bookworm`. O `compose.mariadb.yaml` atual também usa MariaDB 11.8; para a v15 fixe `mariadb:10.6` num override.
 
 ---
 
@@ -182,7 +186,7 @@ docker compose --project-name dom exec backend \
 docker compose --project-name dom exec backend bench use despacho.dom.local
 docker compose --project-name dom exec backend bench --site despacho.dom.local enable-scheduler
 docker compose --project-name dom exec backend bench --site despacho.dom.local set-config host_name http://despacho.dom.local:8080
-docker compose --project-name dom restart backend scheduler queue-short queue-long
+docker compose --project-name dom restart backend scheduler queue-short queue-long frontend
 ```
 
 Acesse `http://IP-DA-VM:8080`. Para nome de domínio interno, aponte `despacho.dom.local` no DNS do MikroTik ou no `hosts` das máquinas.
@@ -297,7 +301,7 @@ cd ~/frappe_docker
 sed -i 's/^CUSTOM_TAG=.*/CUSTOM_TAG=1.1.0/' .env
 docker compose --project-name dom up -d
 docker compose --project-name dom exec backend bench --site despacho.dom.local migrate
-docker compose --project-name dom restart backend scheduler queue-short queue-long
+docker compose --project-name dom restart backend scheduler queue-short queue-long frontend
 ```
 
 ---

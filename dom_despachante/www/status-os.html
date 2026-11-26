@@ -1,0 +1,72 @@
+{% extends "templates/web.html" %}
+
+{% block title %}Consultar ordem de servico{% endblock %}
+
+{% block page_content %}
+<div class="dom-status" style="max-width: 520px; margin: 32px auto;">
+	<h2 style="margin-bottom: 4px;">Acompanhe sua ordem de servico</h2>
+	<p class="text-muted">{{ nome_empresa }}</p>
+
+	<form id="dom-form" style="margin-top: 20px;">
+		<div class="form-group">
+			<label for="dom-numero">Numero da O.S.</label>
+			<input id="dom-numero" class="form-control" placeholder="OS-2026-00001" required autocomplete="off">
+		</div>
+		<div class="form-group">
+			<label for="dom-doc">CPF ou CNPJ do titular</label>
+			<input id="dom-doc" class="form-control" inputmode="numeric" required autocomplete="off">
+		</div>
+		<button class="btn btn-primary" type="submit">Consultar</button>
+	</form>
+
+	<div id="dom-resultado" style="margin-top: 24px;" aria-live="polite"></div>
+</div>
+
+<script>
+	(function () {
+		const form = document.getElementById("dom-form");
+		const saida = document.getElementById("dom-resultado");
+		const esc = (t) => String(t || "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+		form.addEventListener("submit", async (ev) => {
+			ev.preventDefault();
+			saida.innerHTML = "<p class='text-muted'>Consultando...</p>";
+			const corpo = new URLSearchParams({
+				numero: document.getElementById("dom-numero").value,
+				documento: document.getElementById("dom-doc").value,
+			});
+			let r;
+			try {
+				const resp = await fetch("/api/method/dom_despachante.portal.consultar_os", {
+					method: "POST",
+					headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" },
+					body: corpo,
+				});
+				if (resp.status === 429) {
+					saida.innerHTML = "<div class='alert alert-warning'>Muitas tentativas. Aguarde alguns minutos e tente de novo.</div>";
+					return;
+				}
+				r = (await resp.json()).message;
+			} catch (e) {
+				saida.innerHTML = "<div class='alert alert-danger'>Nao foi possivel consultar agora. Tente novamente.</div>";
+				return;
+			}
+			if (!r || !r.encontrada) {
+				saida.innerHTML = `<div class='alert alert-warning'>${esc(r && r.mensagem)}</div>`;
+				return;
+			}
+			const pend = (r.documentos_pendentes || []).map((d) => `<li>${esc(d)}</li>`).join("");
+			saida.innerHTML = `
+				<div class="card" style="padding: 16px;">
+					<div class="text-muted">${esc(r.numero)} &middot; ${esc(r.categoria)}${r.placa ? " &middot; placa " + esc(r.placa) : ""}</div>
+					<h3 style="margin: 8px 0;">${esc(r.status)}</h3>
+					<p>Sua ordem de servico ${esc(r.situacao)}.</p>
+					<p class="text-muted" style="margin-bottom: 0;">
+						Aberta em ${esc(r.abertura)}${r.prazo ? " &middot; previsao: " + esc(r.prazo) : ""}${r.conclusao ? " &middot; concluida em " + esc(r.conclusao) : ""}
+					</p>
+					${pend ? `<hr><p><b>Documentos que ainda faltam:</b></p><ul>${pend}</ul>` : ""}
+				</div>`;
+		});
+	})();
+</script>
+{% endblock %}

@@ -2,7 +2,7 @@
 
 > Siga este arquivo de cima para baixo. Estado atual e decisões pendentes: ops/ESTADO-E-PROXIMOS-PASSOS.md. Referência técnica completa: ops/GUIA-PRODUCAO.md. Especificação original da DOM: ops/especificacao/SISTEMA-DOM.xlsx.
 
-Estado em 25/11/2026: o app está no repositório privado `rafaelangelis/sistema_despachante` (branch `main`, commit `77f7cda`, 52 arquivos). **Nada foi instalado em produção ainda** — nem Docker, nem Frappe, nem banco. Tudo abaixo é a partir do zero na máquina de destino.
+Estado em 25/11/2026: o app está no repositório **público** `rafaelangelis/sistema_despachante` (branch `main`). **Produção ainda não foi instalada**, mas o app já rodou de ponta a ponta num Frappe v15 real em Docker no WSL (site criado, 12 DocTypes, sementes, regras de Cliente/Veículo/O.S., procuração e alertas em simulação testados). Tudo abaixo é a partir do zero na máquina de destino. Para desenvolver/testar no Windows sem VM, veja o **Apêndice — rodar no WSL** no fim deste arquivo.
 
 Decisões já tomadas (não precisa decidir de novo):
 
@@ -114,14 +114,8 @@ JSON
 # garanta que ele não entra no git
 grep -q 'apps.local.json' .gitignore || echo 'ops/apps.local.json' >> .gitignore
 
-cd ~/frappe_docker
-export APPS_JSON_BASE64=$(base64 -w 0 ~/sistema_despachante/ops/apps.local.json)
-docker build \
-  --build-arg=FRAPPE_PATH=https://github.com/frappe/frappe \
-  --build-arg=FRAPPE_BRANCH=version-15 \
-  --build-arg=APPS_JSON_BASE64="$APPS_JSON_BASE64" \
-  --tag=dom-erp:1.0.0 \
-  --file=images/custom/Containerfile .
+APPS_JSON=~/sistema_despachante/ops/apps.local.json \
+  ~/sistema_despachante/ops/scripts/build-imagem.sh ~/frappe_docker dom-erp:1.0.0
 ```
 
 **C2 (padrão hoje) repositório público — sem token:**
@@ -129,22 +123,33 @@ docker build \
 ```bash
 git clone https://github.com/rafaelangelis/sistema_despachante.git
 git clone https://github.com/frappe/frappe_docker.git
+chmod +x ~/sistema_despachante/ops/scripts/*.sh
+~/sistema_despachante/ops/scripts/build-imagem.sh ~/frappe_docker dom-erp:1.0.0
+```
+
+O script faz, por baixo:
+
+```bash
 cd ~/frappe_docker
-export APPS_JSON_BASE64=$(base64 -w 0 ~/sistema_despachante/ops/apps.json)
 docker build \
   --build-arg=FRAPPE_PATH=https://github.com/frappe/frappe \
   --build-arg=FRAPPE_BRANCH=version-15 \
-  --build-arg=APPS_JSON_BASE64="$APPS_JSON_BASE64" \
+  --build-arg=PYTHON_VERSION=3.11.9 \
+  --build-arg=DEBIAN_BASE=bookworm \
+  --secret=id=apps_json,src=$HOME/sistema_despachante/ops/apps.json \
+  --build-arg=CACHE_BUST=$(date +%s) \
   --tag=dom-erp:1.0.0 \
   --file=images/custom/Containerfile .
 ```
+
+> **Atenção (mudou no frappe_docker):** o `apps.json` agora vai como **build secret** (`--secret id=apps_json`). O antigo `--build-arg=APPS_JSON_BASE64` é **ignorado sem erro** e a imagem sai só com o `frappe`. O padrão também virou Python 3.14 (Frappe v16); a v15 precisa de Python 3.10–3.12.
 
 **C3 se o build não funcionar com token:** clone o app no host e monte dentro de um container bench de desenvolvimento; nesse caso avise que eu ajusto o `Containerfile`.
 
 Verificação do build:
 
 ```bash
-docker run --rm dom-erp:1.0.0 ls /home/frappe/frappe-bench/apps
+docker run --rm --entrypoint ls dom-erp:1.0.0 /home/frappe/frappe-bench/apps
 # esperado: frappe  dom_despachante
 ```
 
@@ -156,19 +161,23 @@ Se `dom_despachante` não estiver lá, o clone falhou dentro do build (token/URL
 
 ```bash
 cd ~/frappe_docker
-cp example.env .env      # se existir custom/example.env, prefira ele
+cp example.env .env
+cp ~/sistema_despachante/ops/frappe-overrides/compose.dom.yaml overrides/
 ```
 
-Edite o `.env`:
+Edite o `.env` (troque o conteúdo por este):
 
 ```env
+# O compose.yaml sozinho nao tem banco nem redis: os overrides abaixo sao obrigatorios.
+# Com COMPOSE_FILE aqui, todo "docker compose --project-name dom ..." ja usa todos eles.
+COMPOSE_FILE=compose.yaml:overrides/compose.mariadb.yaml:overrides/compose.redis.yaml:overrides/compose.noproxy.yaml:overrides/compose.dom.yaml
 CUSTOM_IMAGE=dom-erp
 CUSTOM_TAG=1.0.0
-PULL_POLICY=missing
+PULL_POLICY=never
+# senha do root do MariaDB (o compose.mariadb.yaml usa DB_PASSWORD como MYSQL_ROOT_PASSWORD)
 DB_PASSWORD=troque-por-senha-forte
-DB_ROOT_PASSWORD=troque-por-outra-senha-forte
 FRAPPE_SITE_NAME_HEADER=despacho.dom.local
-LETSENCRYPT_EMAIL=ti@dom.local
+HTTP_PUBLISH_PORT=8080
 ```
 
 ```bash
@@ -180,13 +189,13 @@ docker compose --project-name dom exec backend \
     --mariadb-user-host-login-scope='%' \
     --admin-password 'SENHA-DO-ADMINISTRATOR' \
     --db-root-username root \
-    --db-root-password 'SENHA-DB-ROOT' \
+    --db-root-password 'A-MESMA-DO-DB_PASSWORD' \
     --install-app dom_despachante
 
 docker compose --project-name dom exec backend bench use despacho.dom.local
 docker compose --project-name dom exec backend bench --site despacho.dom.local enable-scheduler
 docker compose --project-name dom exec backend bench --site despacho.dom.local set-config host_name http://despacho.dom.local:8080
-docker compose --project-name dom restart backend scheduler queue-short queue-long
+docker compose --project-name dom restart backend scheduler queue-short queue-long frontend
 ```
 
 **Checkpoint 1 — aceite desta etapa:**
@@ -208,49 +217,77 @@ Acesse `http://IP-DA-VM:8080` com `Administrator` e a senha definida. Se aparece
 
 ## Etapa E — WhatsApp (Evolution) + n8n
 
+> Validado de ponta a ponta no WSL em 25/11/2026 (Frappe → n8n 2.49.6 → Evolution v2.3.8), sem celular pareado.
+
+**Rede:** não precisa criar nem editar nada. O `overrides/compose.dom.yaml` da Etapa D já dá ao Frappe a rede `dom-net`, e o `docker-compose.satelites.yml` entra nela como externa. Por isso o **Frappe tem que estar de pé antes** (Etapa D). Se você fez a Etapa D com uma versão antiga do override (sem `networks:`), recopie o arquivo e rode `docker compose --project-name dom down` + `up -d`. O `down` sem `-v` não apaga banco nem site; um `up -d` direto falha com "network dom_default not found".
+
 ```bash
 cd ~/sistema_despachante/ops
-cp .env.exemplo .env
-# edite: EVOLUTION_API_KEY, EVOLUTION_DB_PASSWORD, N8N_ENCRYPTION_KEY, N8N_HOST=IP-DA-VM
-docker compose -f docker-compose.satelites.yml up -d
-docker compose -f docker-compose.satelites.yml ps
+cp .env.exemplo .env && chmod 600 .env
+# troque os valores; para gerar chaves: openssl rand -hex 24
+# N8N_HOST = IP da VM (ou localhost no WSL)
+docker compose -p dom-satelites -f docker-compose.satelites.yml up -d
+docker compose -p dom-satelites -f docker-compose.satelites.yml ps     # 4 serviços Up, postgres healthy
+
+# Frappe enxerga os dois pelo nome?
+cd ~/frappe_docker
+docker compose --project-name dom exec backend curl -s http://n8n:5678/healthz
+docker compose --project-name dom exec backend curl -s http://evolution:8080/
+cd ~/sistema_despachante/ops
+# esperado: {"status":"ok"} e "Welcome to the Evolution API"
 ```
 
-Frappe, n8n e Evolution precisam se falar pelo nome do container. Rede comum:
+**Workflow do n8n pela linha de comando** (o JSON tem `id` fixo, então importar de novo substitui em vez de duplicar):
 
 ```bash
-docker network create dom-net
+N="docker compose -p dom-satelites -f docker-compose.satelites.yml"
+docker cp n8n/alerta-licenciamento.json dom-satelites-n8n-1:/tmp/wf.json
+$N exec n8n n8n import:workflow --input=/tmp/wf.json
+$N exec n8n n8n publish:workflow --id=DomAlertaWpp0001      # n8n 2.x: "publish" = ativar
+$N restart n8n
 ```
 
-E acrescente em **ambos** os compose (`satelites.yml` e o do frappe_docker):
+Na primeira vez que abrir `http://IP-DA-VM:5678`, o n8n pede para criar a conta de dono; o workflow já aparece publicado lá.
 
-```yaml
-networks:
-  default:
-    name: dom-net
-    external: true
-```
-
-Depois `docker compose --project-name dom up -d` e `docker compose -f docker-compose.satelites.yml up -d` de novo.
-
-Parear o WhatsApp:
+**Criar a instância do WhatsApp e parear** (aqui é preciso o celular que vai enviar as mensagens):
 
 ```bash
-curl -X POST http://IP-DA-VM:8081/instance/create \
-  -H "apikey: SUA_EVOLUTION_API_KEY" -H "Content-Type: application/json" \
+. ./.env
+curl -s -X POST http://localhost:8081/instance/create \
+  -H "apikey: $EVOLUTION_API_KEY" -H "Content-Type: application/json" \
   -d '{"instanceName":"dom-cristo","qrcode":true,"integration":"WHATSAPP-BAILEYS"}'
-
-curl http://IP-DA-VM:8081/instance/connect/dom-cristo -H "apikey: SUA_EVOLUTION_API_KEY"
-# abra o base64/qr no navegador e leia no celular (WhatsApp > Aparelhos conectados)
 ```
 
-n8n (`http://IP-DA-VM:5678`): **Workflows → ⋯ → Import from file** → `ops/n8n/alerta-licenciamento.json` → **Activate**.
+Para ler o QR, o caminho mais simples é o painel da própria Evolution: **http://IP-DA-VM:8081/manager**. Entre com a `EVOLUTION_API_KEY`, abra a instância `dom-cristo` e leia o QR no celular (WhatsApp → Aparelhos conectados). Confira depois:
+
+```bash
+curl -s http://localhost:8081/instance/connectionState/dom-cristo -H "apikey: $EVOLUTION_API_KEY"
+# "state":"open" = pareado; "close" = não pareado
+```
+
+**Teste da cadeia sem celular** (não envia nada; serve para provar rede, `$env` do n8n e chave da Evolution):
+
+```bash
+curl -s -X POST http://localhost:5678/webhook/alerta-dom -H 'Content-Type: application/json' \
+  -d '{"cliente":"5500000000000","mensagem":"teste","referencia":"teste"}'
+```
+
+| Resposta | Significa |
+|---|---|
+| erro 500 com `instance does not exist` (no log do n8n) | cadeia OK, falta criar a instância |
+| erro 500 com `onWhatsApp` / `Connection Closed` | cadeia OK, instância criada mas **não pareada** |
+| erro 401 da Evolution | `EVOLUTION_API_KEY` do n8n difere da Evolution (mesmo `.env`? `up -d` de novo) |
+| `getaddrinfo ENOTFOUND evolution` | n8n fora da `dom-net` |
+| `access to env vars denied` | faltou `N8N_BLOCK_ENV_ACCESS_IN_NODE=false` (já vem no compose) |
+
+O webhook usa `responseMode: lastNode`: o Frappe recebe o resultado **real** do envio, e o histórico do veículo (`alerta_enviado_em`) registra `http_200` só quando a Evolution aceitou a mensagem. Antes ele respondia 200 na hora e o Frappe marcava tudo como enviado.
 
 ---
 
 ## Etapa F — configurar dentro do sistema
 
 1. **Configuracao Despachante**: webhook `http://n8n:5678/webhook/alerta-dom`, URL Evolution `http://evolution:8080`, instância `dom-cristo`, antecedências `45,30,15,5`, **modo simulação ligado**.
+   Confira também em **System Settings** o fuso `America/Sao_Paulo`: o app já configura na instalação, mas o assistente de primeiro login do Frappe pode trocar. Com fuso errado, os alertas diários saem com a data errada.
 2. **Teste do alerta** (sem enviar nada): cadastre um Veículo com `exercicio_licenciamento` do ano corrente e veja o vencimento ser calculado pelo calendário; depois:
 
 ```bash
@@ -263,18 +300,45 @@ docker compose --project-name dom exec backend \
 4. **Serviços**: 14 já vêm semeados — ajuste honorários e taxas.
 5. **Calendário**: SP/2026 vem semeado da sua planilha; **confira no site do DETRAN** antes de confiar.
 6. **Procuração**: imprima uma O.S. e veja o PDF gerado pelo Print Format `procuracao`.
+7. **Calendário do ano seguinte**: em **Calendario Licenciamento → Copiar calendario**, copie o ano atual para o próximo e ajuste as datas pelo site do DETRAN. Sem ele os vencimentos ficam **estimados** (marcados no veículo), e a partir de novembro o sistema avisa toda semana no sininho.
+8. **Financeiro**: na O.S., **Financeiro → Registrar recebimento** (vem com o saldo preenchido). Confira se a O.S. muda para *Parcial/Pago* e imprima o **recibo**. Marque *Taxa paga ao órgão* nos serviços quando pagar a guia. Relatórios: **Contas a Receber**, **Caixa Recebimentos** e **Taxas a Repassar**.
+9. **Painel**: o workspace **Despachante** traz O.S. em aberto/atrasadas, vencimentos em 30 dias, a receber e recebido hoje.
+10. **Aviso de andamento ao cliente** (opcional, vem desligado): em *Configuracao Despachante → Alertas*, ligue "Avisar o cliente quando a O.S. mudar de status" e escolha os status. O envio respeita o modo simulação e o pedido de "não receber WhatsApp" do cliente.
+11. **Consulta pública** `http://IP-DA-VM:8080/status-os`: o cliente digita o número da O.S. e o CPF/CNPJ. Com as portas fechadas para a internet, ela só funciona na rede do escritório. Publicar para fora (domínio + HTTPS) é uma decisão à parte.
 
 ---
 
 ## Etapa G — backup
 
+Cada execução cria **uma pasta datada** com banco, arquivos públicos, arquivos privados, `site_config` e a `encryption_key` do site. Sem a `encryption_key`, um restore não consegue ler as senhas salvas, como a chave da Evolution. As pastas com mais de 30 dias são apagadas (`RETENCAO_DIAS`).
+
 ```bash
-chmod +x ~/sistema_despachante/ops/scripts/backup.sh
-sudo crontab -e
-# 0 2 * * * SITE=despacho.dom.local COMPOSE_DIR=/home/SEU_USUARIO/frappe_docker /home/SEU_USUARIO/sistema_despachante/ops/scripts/backup.sh >> /var/log/dom-backup.log 2>&1
+chmod +x ~/sistema_despachante/ops/scripts/*.sh
+sudo mkdir -p /var/backups/dom-despachante && sudo chown "$USER" /var/backups/dom-despachante
+
+# rode uma vez na mão
+SITE=despacho.dom.local ~/sistema_despachante/ops/scripts/backup.sh
+# esperado: "Backup concluido: /var/backups/dom-despachante/despacho.dom.local/AAAAMMDD-HHMMSS (...)"
+
+crontab -e     # crontab do SEU usuário (ele está no grupo docker); não precisa de sudo
+# 0 2 * * * SITE=despacho.dom.local COMPOSE_DIR=/home/SEU_USUARIO/frappe_docker /home/SEU_USUARIO/sistema_despachante/ops/scripts/backup.sh >> /home/SEU_USUARIO/dom-backup.log 2>&1
 ```
 
-Rode uma vez na mão e confirme que o `.tar.gz` aparece em `/var/backups/dom-despachante`.
+> A pasta contém CPF, CNH e endereços (LGPD) e a chave de criptografia: os arquivos saem com permissão `600`. **Copie para fora da VM** (outro disco, NAS, nuvem com criptografia): um backup que só existe na mesma VM não protege contra perda do disco.
+
+**Teste de restore** (faça uma vez, e depois de cada mudança grande). Ele restaura num site *separado*, sem tocar no de produção:
+
+```bash
+P=$(ls -d /var/backups/dom-despachante/despacho.dom.local/*/ | tail -1)
+DB_ROOT_PASSWORD='o DB_PASSWORD do .env' ~/sistema_despachante/ops/scripts/restore.sh "$P" restore.dom.local
+cd ~/frappe_docker
+docker compose --project-name dom exec backend bench --site restore.dom.local list-apps
+# confira contagens (Cliente, Veiculo, O.S.) no console e depois apague o site de teste:
+docker compose --project-name dom exec backend bench drop-site restore.dom.local \
+  --db-root-username root --db-root-password 'o DB_PASSWORD do .env' --force --no-backup
+```
+
+Para **recuperar a produção numa máquina nova**: faça as Etapas B a D (sem o `new-site`) e rode o `restore.sh` com o nome do site de produção. O site é criado, recebe o banco, os arquivos e a `encryption_key`, e passa pelo `migrate`.
 
 ---
 
@@ -290,6 +354,13 @@ Rode uma vez na mão e confirme que o `.tar.gz` aparece em `/var/backups/dom-des
 - [ ] Backup gerado + restore testado em site de teste
 - [ ] Senha do `Administrator` trocada e usuários criados
 - [ ] Portas 8080/5678/8081 fechadas para fora da LAN
+- [ ] Calendário do ano seguinte cadastrado e conferido no DETRAN
+- [ ] Recebimento parcial e total numa O.S. de teste: situação muda para Parcial/Pago e o recibo imprime
+- [ ] Atendente consegue abrir O.S. completa e NÃO consegue exportar clientes nem cancelar recebimento
+- [ ] `/status-os` mostra a O.S. de teste com o CPF certo e recusa com o errado
+- [ ] Testes do app passam no servidor: `bench --site SITE_DE_TESTE run-tests --app dom_despachante` (num site separado, com `allow_tests`)
+
+> **502 depois de reiniciar o backend?** O nginx do `frontend` guarda o IP antigo do backend. Reinicie o `frontend` junto, como já fazem todos os comandos `restart` deste runbook.
 
 ---
 
@@ -299,7 +370,7 @@ Rode uma vez na mão e confirme que o `.tar.gz` aparece em `/var/backups/dom-des
 docker compose --project-name dom ps
 docker compose --project-name dom logs backend --tail 200
 docker compose --project-name dom exec backend bench --site despacho.dom.local list-apps
-docker run --rm dom-erp:1.0.0 ls /home/frappe/frappe-bench/apps
+docker run --rm --entrypoint ls dom-erp:1.0.0 /home/frappe/frappe-bench/apps
 ```
 
 Com esses quatro retornos eu identifico se o problema é imagem, banco, site ou app.
@@ -310,13 +381,65 @@ Com esses quatro retornos eu identifico se o problema é imagem, banco, site ou 
 
 ```bash
 cd ~/sistema_despachante && git pull
-cd ~/frappe_docker
-export APPS_JSON_BASE64=$(base64 -w 0 ~/sistema_despachante/ops/apps.local.json)
-docker build --build-arg=FRAPPE_PATH=https://github.com/frappe/frappe \
-  --build-arg=FRAPPE_BRANCH=version-15 --build-arg=APPS_JSON_BASE64="$APPS_JSON_BASE64" \
-  --tag=dom-erp:1.0.1 --file=images/custom/Containerfile .
+cd ~/frappe_docker && git pull
+~/sistema_despachante/ops/scripts/build-imagem.sh ~/frappe_docker dom-erp:1.0.1
 sed -i 's/^CUSTOM_TAG=.*/CUSTOM_TAG=1.0.1/' ~/frappe_docker/.env
+cd ~/frappe_docker
 docker compose --project-name dom up -d
 docker compose --project-name dom exec backend bench --site despacho.dom.local migrate
-docker compose --project-name dom restart backend scheduler queue-short queue-long
+docker compose --project-name dom restart backend scheduler queue-short queue-long frontend
 ```
+
+> O script sempre passa `CACHE_BUST`. O Docker não considera o conteúdo do `apps.json` (secret) no cache, e sem isso o build reaproveitava o clone antigo: a imagem "nova" saía com o código velho, e isso foi confirmado em teste. Se você montar o `docker build` à mão, inclua `--build-arg=CACHE_BUST=$(date +%s)`.
+
+---
+
+## Apêndice — rodar no WSL (Windows, desenvolvimento/teste)
+
+Testado em 25/11/2026 num Windows 10 com WSL2 + Ubuntu 24.04 (systemd ligado). Usa **Docker Engine dentro do WSL**, não Docker Desktop. É o mesmo caminho das Etapas C e D, com dois ajustes: a porta fica em `localhost` do Windows, e o código do app é montado dentro dos containers, então você edita e testa sem gerar imagem nova.
+
+```bash
+# 1) Docker dentro do WSL (uma vez)
+curl -fsSL https://get.docker.com | sudo sh
+sudo usermod -aG docker "$USER"      # feche e abra o terminal do WSL
+sudo systemctl enable --now docker
+
+# 2) Código + imagem (igual à Etapa C, caminho C2)
+cd ~
+git clone https://github.com/rafaelangelis/sistema_despachante.git
+git clone https://github.com/frappe/frappe_docker.git
+chmod +x ~/sistema_despachante/ops/scripts/*.sh
+~/sistema_despachante/ops/scripts/build-imagem.sh ~/frappe_docker dom-erp:1.0.0   # 15-30 min
+
+# 3) Compose com o override de desenvolvimento
+cd ~/frappe_docker
+cp example.env .env
+cp ~/sistema_despachante/ops/frappe-overrides/compose.dom*.yaml overrides/
+```
+
+No `.env`, use o mesmo conteúdo da Etapa D, trocando a linha `COMPOSE_FILE` por esta (acrescenta o `compose.dom-dev.yaml`) e adicionando `DOM_APP_SRC` com o caminho **absoluto** do clone (rode `echo $HOME` para saber o seu):
+
+```env
+COMPOSE_FILE=compose.yaml:overrides/compose.mariadb.yaml:overrides/compose.redis.yaml:overrides/compose.noproxy.yaml:overrides/compose.dom.yaml:overrides/compose.dom-dev.yaml
+DOM_APP_SRC=/home/SEU_USUARIO/sistema_despachante
+```
+
+> Não use `~` no `DOM_APP_SRC`: com `sudo docker compose` ele vira `/root`, o Docker cria uma pasta vazia e a monta por cima do app — o site passa a responder 502.
+
+Depois siga a Etapa D a partir do `docker compose --project-name dom up -d` (use `set-config host_name http://localhost:8080`). O sistema abre no navegador do Windows em **http://localhost:8080**.
+
+Ciclo de desenvolvimento no WSL:
+
+```bash
+cd ~/frappe_docker
+# mudou só Python/Jinja:
+docker compose --project-name dom restart backend scheduler queue-short queue-long frontend
+# mudou DocType (JSON), patches ou hooks:
+docker compose --project-name dom exec backend bench --site despacho.dom.local migrate
+```
+
+Dicas que custaram tempo na primeira instalação:
+
+- Do PowerShell, rodar `wsl -e bash -c "..."` com aspas aninhadas quebra fácil; prefira abrir o terminal do Ubuntu ou mandar um `.sh` para o `wsl -e bash arquivo.sh`.
+- `docker run --rm dom-erp:1.0.0 ls ...` **sem** `--entrypoint ls` mostra a saída do entrypoint e parece que o app não está na imagem.
+- O WSL encaminha as portas para o `localhost` do Windows: confira antes que 8080/5678/8081 não estejam em uso no Windows.

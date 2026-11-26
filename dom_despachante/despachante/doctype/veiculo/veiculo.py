@@ -49,30 +49,32 @@ class Veiculo(Document):
 			self.exercicio_licenciamento = int((nowdate() or "2026")[:4])
 
 	def grupo_licenciamento(self):
-		if (self.tipo_veiculo or "").upper() in TIPOS_CAMINHAO:
-			return GRUPO_CAMINHOES
-		return GRUPO_LEVES
+		return grupo_por_tipo(self.tipo_veiculo)
 
-	def definir_vencimento_licenciamento(self):
-		"""Calcula o vencimento a partir da tabela Calendario Licenciamento (UF + ano + grupo + final)."""
+	def definir_vencimento_licenciamento(self, avisar=True):
+		"""Calcula o vencimento pela tabela Calendario Licenciamento (UF + ano + grupo + final).
+
+		Sem calendario do ano, usa o do ano mais recente anterior (mesmo dia/mes) e marca
+		vencimento_estimado; quando o calendario oficial e cadastrado, CalendarioLicenciamento
+		recalcula os veiculos afetados.
+		"""
 		if not (self.uf_emplacamento and self.exercicio_licenciamento and self.final_placa):
 			return
-		regra = frappe.db.get_value(
-			"Calendario Licenciamento",
-			{
-				"uf": self.uf_emplacamento,
-				"ano": self.exercicio_licenciamento,
-				"grupo": self.grupo_licenciamento(),
-				"final_placa": self.final_placa,
-			},
-			["mes_limite", "dia_limite"],
-			as_dict=True,
+		data, estimado = calcular_vencimento(
+			self.uf_emplacamento, self.exercicio_licenciamento, self.grupo_licenciamento(), self.final_placa
 		)
-		if regra and regra.mes_limite and regra.dia_limite:
-			self.data_vencimento_licenciamento = "{0}-{1:02d}-{2:02d}".format(
-				int(self.exercicio_licenciamento), int(regra.mes_limite), int(regra.dia_limite)
-			)
-		else:
+		if data:
+			self.data_vencimento_licenciamento = data
+			self.vencimento_estimado = 1 if estimado else 0
+			if estimado and avisar:
+				frappe.msgprint(
+					_("Ainda nao ha calendario de licenciamento {0}/{1}: vencimento estimado pelo calendario anterior. Cadastre o calendario oficial em Calendario Licenciamento.").format(
+						self.uf_emplacamento, self.exercicio_licenciamento
+					),
+					indicator="orange",
+					alert=True,
+				)
+		elif avisar:
 			frappe.msgprint(
 				_("Sem regra de licenciamento para {0}/{1}/{2}/{3}. Cadastre em Calendario Licenciamento.").format(
 					self.uf_emplacamento, self.exercicio_licenciamento, self.grupo_licenciamento(), self.final_placa
@@ -80,3 +82,36 @@ class Veiculo(Document):
 				indicator="orange",
 				alert=True,
 			)
+
+
+def grupo_por_tipo(tipo_veiculo):
+	return GRUPO_CAMINHOES if (tipo_veiculo or "").strip().upper() in TIPOS_CAMINHAO else GRUPO_LEVES
+
+
+def _montar_data(ano, mes, dia):
+	"""Data ISO; 29/02 em ano nao bissexto vira 28/02."""
+	import calendar
+
+	ano, mes, dia = int(ano), int(mes), int(dia)
+	dia = min(dia, calendar.monthrange(ano, mes)[1])
+	return "{0}-{1:02d}-{2:02d}".format(ano, mes, dia)
+
+
+def calcular_vencimento(uf, ano, grupo, final_placa):
+	"""Retorna (data_iso, estimado). (None, False) se nao houver regra nem no ano nem antes."""
+	filtros = {"uf": uf, "grupo": grupo, "final_placa": str(final_placa)}
+	regra = frappe.db.get_value(
+		"Calendario Licenciamento", dict(filtros, ano=int(ano)), ["mes_limite", "dia_limite"], as_dict=True
+	)
+	if regra and regra.mes_limite and regra.dia_limite:
+		return _montar_data(ano, regra.mes_limite, regra.dia_limite), False
+	anteriores = frappe.get_all(
+		"Calendario Licenciamento",
+		filters=dict(filtros, ano=["<", int(ano)]),
+		fields=["mes_limite", "dia_limite"],
+		order_by="ano desc",
+		limit=1,
+	)
+	if anteriores and anteriores[0].mes_limite and anteriores[0].dia_limite:
+		return _montar_data(ano, anteriores[0].mes_limite, anteriores[0].dia_limite), True
+	return None, False

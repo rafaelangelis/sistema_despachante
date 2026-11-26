@@ -13,10 +13,21 @@ after_install = "dom_despachante.install.after_install"
 
 scheduler_events = {
 	"daily": [
+		# enviar_alertas_licenciamento tambem chama a virada antes de calcular os alertas
+		"dom_despachante.tasks.atualizar_exercicio_veiculos",
 		"dom_despachante.tasks.enviar_alertas_licenciamento",
 		"dom_despachante.tasks.enviar_alertas_cnh",
-	]
+	],
+	"weekly": [
+		"dom_despachante.tasks.verificar_calendario_proximo_ano",
+	],
 }
 
 # Exporta o historico de alteracoes por documento (campo a campo) - nativo do Frappe
 track_changes = True
+# Funcoes disponiveis nos Print Formats (Jinja)
+jinja = {
+	"methods": [
+		"dom_despachante.financeiro.valor_por_extenso",
+	]
+}

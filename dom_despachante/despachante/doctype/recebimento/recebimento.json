@@ -1,0 +1,43 @@
+{
+ "actions": [],
+ "autoname": "REC-.YYYY.-.#####",
+ "creation": "2026-11-25 23:40:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "ordem_de_servico", "cliente", "nome_cliente", "saldo_antes", "cb_rec", "data", "valor", "forma_pagamento", "recebido_por",
+  "sec_obs", "observacao", "amended_from"
+ ],
+ "fields": [
+  {"fieldname": "ordem_de_servico", "fieldtype": "Link", "in_list_view": 1, "in_standard_filter": 1, "label": "Ordem de servico", "options": "Ordem de Servico", "reqd": 1},
+  {"fieldname": "cliente", "fieldtype": "Link", "fetch_from": "ordem_de_servico.cliente", "in_standard_filter": 1, "label": "Cliente", "options": "Cliente", "read_only": 1},
+  {"fieldname": "nome_cliente", "fieldtype": "Data", "fetch_from": "cliente.nome_completo", "in_list_view": 1, "label": "Nome do cliente", "read_only": 1},
+  {"fieldname": "saldo_antes", "fieldtype": "Currency", "label": "Saldo da O.S. antes deste recebimento", "read_only": 1, "no_copy": 1},
+  {"fieldname": "cb_rec", "fieldtype": "Column Break"},
+  {"fieldname": "data", "fieldtype": "Date", "default": "Today", "in_list_view": 1, "in_standard_filter": 1, "label": "Data", "reqd": 1},
+  {"fieldname": "valor", "fieldtype": "Currency", "in_list_view": 1, "label": "Valor recebido", "reqd": 1},
+  {"fieldname": "forma_pagamento", "fieldtype": "Select", "in_list_view": 1, "in_standard_filter": 1, "label": "Forma de pagamento", "options": "PIX\nDinheiro\nCartao de debito\nCartao de credito\nBoleto\nTransferencia", "default": "PIX", "reqd": 1},
+  {"fieldname": "recebido_por", "fieldtype": "Link", "label": "Recebido por", "options": "User", "read_only": 1},
+  {"fieldname": "sec_obs", "fieldtype": "Section Break"},
+  {"fieldname": "observacao", "fieldtype": "Small Text", "label": "Observacao"},
+  {"fieldname": "amended_from", "fieldtype": "Link", "label": "Corrige o recebimento", "no_copy": 1, "options": "Recebimento", "print_hide": 1, "read_only": 1}
+ ],
+ "index_web_pages_for_search": 0,
+ "default_print_format": "recibo",
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-11-25 23:40:00.000000",
+ "modified_by": "Administrator",
+ "module": "Despachante",
+ "name": "Recebimento",
+ "owner": "Administrator",
+ "permissions": [
+  {"amend": 1, "cancel": 1, "create": 1, "delete": 1, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "System Manager", "share": 1, "submit": 1, "write": 1},
+  {"amend": 1, "cancel": 1, "create": 1, "delete": 0, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "Despachante", "share": 1, "submit": 1, "write": 1},
+  {"amend": 0, "cancel": 0, "create": 1, "delete": 0, "email": 1, "export": 0, "print": 1, "read": 1, "report": 1, "role": "Atendente", "share": 0, "submit": 1, "write": 1}
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "title_field": "nome_cliente",
+ "track_changes": 1
+}

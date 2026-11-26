@@ -50,12 +50,35 @@ def before_migrate(*args, **kwargs):
 
 
 def after_install(*args, **kwargs):
+	configurar_regionais()
 	criar_roles()
 	semear_calendario()
 	semear_servicos()
 	configurar_padroes()
 	frappe.reload_doc("despachante", "print_format", "procuracao", force=True)
 	frappe.db.commit()
+
+
+def configurar_regionais():
+	"""Fuso e formatos do Brasil, se ninguem configurou ainda.
+
+	Com time_zone vazio o Frappe assume Asia/Kolkata (UTC+5:30): today() vira o dia
+	seguinte a partir das ~18h30 de Brasilia, e os alertas diarios (que comparam o
+	vencimento com today() + N dias) passam a sair com a data errada.
+	"""
+	padroes = {
+		"time_zone": "America/Sao_Paulo",
+		"date_format": "dd/mm/yyyy",
+		"number_format": "#.###,##",
+		"float_precision": "3",
+		"currency_precision": "2",
+	}
+	for campo, valor in padroes.items():
+		if not frappe.db.get_single_value("System Settings", campo):
+			frappe.db.set_single_value("System Settings", campo, valor)
+	if not frappe.db.get_single_value("System Settings", "country") and frappe.db.exists("Country", "Brazil"):
+		frappe.db.set_single_value("System Settings", "country", "Brazil")
+	frappe.clear_cache()
 
 
 def semear_calendario():
