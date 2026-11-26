@@ -1,0 +1,73 @@
+# Roda os testes do app num Frappe v15 limpo a cada push no main e em todo pull request.
+name: Testes
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: testes-${{ github.event.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  testes:
+    name: Frappe v15 + dom_despachante
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    services:
+      redis-cache:
+        image: redis:7-alpine
+        ports: ["13000:6379"]
+      redis-queue:
+        image: redis:7-alpine
+        ports: ["11000:6379"]
+      mariadb:
+        image: mariadb:10.6
+        env:
+          MYSQL_ROOT_PASSWORD: root
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd="mysqladmin ping -proot" --health-interval=5s --health-timeout=2s --health-retries=10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Cliente MariaDB e charset
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq mariadb-client
+          mysql -h 127.0.0.1 -P 3306 -u root -proot -e "SET GLOBAL character_set_server = 'utf8mb4'; SET GLOBAL collation_server = 'utf8mb4_unicode_ci';"
+
+      - name: Bench com Frappe v15
+        run: |
+          pip install -q frappe-bench
+          bench init --skip-redis-config-generation --skip-assets --frappe-branch version-15 \
+            --python "$(which python)" ~/frappe-bench
+
+      - name: Instalar o app num site de teste
+        working-directory: /home/runner/frappe-bench
+        env:
+          CI: "Yes"
+        run: |
+          bench get-app dom_despachante "$GITHUB_WORKSPACE"
+          bench setup requirements --dev
+          bench new-site --db-root-password root --admin-password admin --mariadb-user-host-login-scope='%' test_site
+          bench --site test_site install-app dom_despachante
+          bench build --app frappe
+          bench --site test_site set-config allow_tests true
+
+      - name: Testes
+        working-directory: /home/runner/frappe-bench
+        run: bench --site test_site run-tests --app dom_despachante

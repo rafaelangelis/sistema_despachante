@@ -7,6 +7,10 @@
 # em silencio: a imagem sai so com o frappe, sem o app.
 # O padrao da imagem tambem passou a ser Python 3.14 / Debian trixie (Frappe v16);
 # o Frappe v15 exige Python 3.10-3.12, por isso fixamos 3.11 + bookworm.
+#
+# CACHE_BUST: o conteudo do secret NAO entra na chave de cache do Docker. Sem isto um
+# rebuild reaproveita o clone antigo do app e a imagem "nova" sai com o codigo velho
+# (aconteceu no teste). Com ele, o bench init roda de novo a cada build (~5-10 min).
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -23,6 +27,7 @@ docker build \
   --build-arg=PYTHON_VERSION=3.11.9 \
   --build-arg=DEBIAN_BASE=bookworm \
   --secret=id=apps_json,src="$APPS_JSON" \
+  --build-arg=CACHE_BUST="$(date +%s)" \
   --tag="$TAG" \
   --file=images/custom/Containerfile .
 

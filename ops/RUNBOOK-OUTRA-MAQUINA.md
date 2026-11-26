@@ -137,6 +137,7 @@ docker build \
   --build-arg=PYTHON_VERSION=3.11.9 \
   --build-arg=DEBIAN_BASE=bookworm \
   --secret=id=apps_json,src=$HOME/sistema_despachante/ops/apps.json \
+  --build-arg=CACHE_BUST=$(date +%s) \
   --tag=dom-erp:1.0.0 \
   --file=images/custom/Containerfile .
 ```
@@ -377,7 +378,7 @@ docker compose --project-name dom exec backend bench --site despacho.dom.local m
 docker compose --project-name dom restart backend scheduler queue-short queue-long
 ```
 
-> Se o build reaproveitar o clone antigo do app (camada em cache), rode-o com `--no-cache` ou acrescente `--build-arg=CACHE_BUST=$(date +%s)` no `docker build` do script.
+> O script sempre passa `CACHE_BUST`. O Docker não considera o conteúdo do `apps.json` (secret) no cache, e sem isso o build reaproveitava o clone antigo: a imagem "nova" saía com o código velho, e isso foi confirmado em teste. Se você montar o `docker build` à mão, inclua `--build-arg=CACHE_BUST=$(date +%s)`.
 
 ---
 

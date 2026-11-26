@@ -140,6 +140,7 @@ docker build \
   --build-arg=PYTHON_VERSION=3.11.9 \
   --build-arg=DEBIAN_BASE=bookworm \
   --secret=id=apps_json,src=$HOME/sistema_despachante/ops/apps.json \
+  --build-arg=CACHE_BUST=$(date +%s) \
   --tag=dom-erp:1.0.0 \
   --file=images/custom/Containerfile .
 ```
