@@ -1,5 +1,13 @@
 # Satelites do sistema DOM: WhatsApp (Evolution API) + automacao (n8n)
-# Subir com:  docker compose -f docker-compose.satelites.yml up -d
+# Subir com:  docker compose -p dom-satelites -f docker-compose.satelites.yml up -d
+# Suba o Frappe ANTES: a rede dom-net e criada pelo compose do frappe_docker
+# (overrides/compose.dom.yaml), e aqui ela e usada como externa. Assim o Frappe
+# chama http://n8n:5678 e o n8n chama http://evolution:8080 pelo nome do container.
+networks:
+  default:
+    name: dom-net
+    external: true
+
 services:
   postgres_evolution:
     image: postgres:16-alpine
@@ -47,11 +55,16 @@ services:
       - evolution_instances:/evolution/instances
 
   n8n:
-    image: docker.n8n.io/n8nio/n8n:latest
+    # versao fixa: com :latest uma atualizacao do n8n pode quebrar o workflow sem aviso
+    image: docker.n8n.io/n8nio/n8n:2.49.6
     restart: unless-stopped
     ports:
       - "5678:5678"
     environment:
+      # o workflow le EVOLUTION_* via $env; o n8n 2.x bloqueia isso por padrao
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
+      # acesso por http na LAN (sem TLS); sem isto o login do n8n so funciona em localhost
+      N8N_SECURE_COOKIE: "false"
       N8N_HOST: ${N8N_HOST}
       N8N_PORT: "5678"
       N8N_PROTOCOL: http

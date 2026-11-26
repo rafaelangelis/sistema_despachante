@@ -5,3 +5,8 @@
 services:
   db:
     image: mariadb:10.6
+
+# Rede com nome fixo, compartilhada com ops/docker-compose.satelites.yml (n8n + Evolution).
+networks:
+  default:
+    name: dom-net

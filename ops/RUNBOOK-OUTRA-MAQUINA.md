@@ -216,49 +216,77 @@ Acesse `http://IP-DA-VM:8080` com `Administrator` e a senha definida. Se aparece
 
 ## Etapa E — WhatsApp (Evolution) + n8n
 
+> Validado de ponta a ponta no WSL em 25/11/2026 (Frappe → n8n 2.49.6 → Evolution v2.3.8), sem celular pareado.
+
+**Rede:** não precisa criar nem editar nada. O `overrides/compose.dom.yaml` da Etapa D já dá ao Frappe a rede `dom-net`, e o `docker-compose.satelites.yml` entra nela como externa. Por isso o **Frappe tem que estar de pé antes** (Etapa D). Se você fez a Etapa D com uma versão antiga do override (sem `networks:`), recopie o arquivo e rode `docker compose --project-name dom down` + `up -d`. O `down` sem `-v` não apaga banco nem site; um `up -d` direto falha com "network dom_default not found".
+
 ```bash
 cd ~/sistema_despachante/ops
-cp .env.exemplo .env
-# edite: EVOLUTION_API_KEY, EVOLUTION_DB_PASSWORD, N8N_ENCRYPTION_KEY, N8N_HOST=IP-DA-VM
-docker compose -f docker-compose.satelites.yml up -d
-docker compose -f docker-compose.satelites.yml ps
+cp .env.exemplo .env && chmod 600 .env
+# troque os valores; para gerar chaves: openssl rand -hex 24
+# N8N_HOST = IP da VM (ou localhost no WSL)
+docker compose -p dom-satelites -f docker-compose.satelites.yml up -d
+docker compose -p dom-satelites -f docker-compose.satelites.yml ps     # 4 serviços Up, postgres healthy
+
+# Frappe enxerga os dois pelo nome?
+cd ~/frappe_docker
+docker compose --project-name dom exec backend curl -s http://n8n:5678/healthz
+docker compose --project-name dom exec backend curl -s http://evolution:8080/
+cd ~/sistema_despachante/ops
+# esperado: {"status":"ok"} e "Welcome to the Evolution API"
 ```
 
-Frappe, n8n e Evolution precisam se falar pelo nome do container. Rede comum:
+**Workflow do n8n pela linha de comando** (o JSON tem `id` fixo, então importar de novo substitui em vez de duplicar):
 
 ```bash
-docker network create dom-net
+N="docker compose -p dom-satelites -f docker-compose.satelites.yml"
+docker cp n8n/alerta-licenciamento.json dom-satelites-n8n-1:/tmp/wf.json
+$N exec n8n n8n import:workflow --input=/tmp/wf.json
+$N exec n8n n8n publish:workflow --id=DomAlertaWpp0001      # n8n 2.x: "publish" = ativar
+$N restart n8n
 ```
 
-E acrescente em **ambos** os compose (`satelites.yml` e o do frappe_docker):
+Na primeira vez que abrir `http://IP-DA-VM:5678`, o n8n pede para criar a conta de dono; o workflow já aparece publicado lá.
 
-```yaml
-networks:
-  default:
-    name: dom-net
-    external: true
-```
-
-Depois `docker compose --project-name dom up -d` e `docker compose -f docker-compose.satelites.yml up -d` de novo.
-
-Parear o WhatsApp:
+**Criar a instância do WhatsApp e parear** (aqui é preciso o celular que vai enviar as mensagens):
 
 ```bash
-curl -X POST http://IP-DA-VM:8081/instance/create \
-  -H "apikey: SUA_EVOLUTION_API_KEY" -H "Content-Type: application/json" \
+. ./.env
+curl -s -X POST http://localhost:8081/instance/create \
+  -H "apikey: $EVOLUTION_API_KEY" -H "Content-Type: application/json" \
   -d '{"instanceName":"dom-cristo","qrcode":true,"integration":"WHATSAPP-BAILEYS"}'
-
-curl http://IP-DA-VM:8081/instance/connect/dom-cristo -H "apikey: SUA_EVOLUTION_API_KEY"
-# abra o base64/qr no navegador e leia no celular (WhatsApp > Aparelhos conectados)
 ```
 
-n8n (`http://IP-DA-VM:5678`): **Workflows → ⋯ → Import from file** → `ops/n8n/alerta-licenciamento.json` → **Activate**.
+Para ler o QR, o caminho mais simples é o painel da própria Evolution: **http://IP-DA-VM:8081/manager**. Entre com a `EVOLUTION_API_KEY`, abra a instância `dom-cristo` e leia o QR no celular (WhatsApp → Aparelhos conectados). Confira depois:
+
+```bash
+curl -s http://localhost:8081/instance/connectionState/dom-cristo -H "apikey: $EVOLUTION_API_KEY"
+# "state":"open" = pareado; "close" = não pareado
+```
+
+**Teste da cadeia sem celular** (não envia nada; serve para provar rede, `$env` do n8n e chave da Evolution):
+
+```bash
+curl -s -X POST http://localhost:5678/webhook/alerta-dom -H 'Content-Type: application/json' \
+  -d '{"cliente":"5500000000000","mensagem":"teste","referencia":"teste"}'
+```
+
+| Resposta | Significa |
+|---|---|
+| erro 500 com `instance does not exist` (no log do n8n) | cadeia OK, falta criar a instância |
+| erro 500 com `onWhatsApp` / `Connection Closed` | cadeia OK, instância criada mas **não pareada** |
+| erro 401 da Evolution | `EVOLUTION_API_KEY` do n8n difere da Evolution (mesmo `.env`? `up -d` de novo) |
+| `getaddrinfo ENOTFOUND evolution` | n8n fora da `dom-net` |
+| `access to env vars denied` | faltou `N8N_BLOCK_ENV_ACCESS_IN_NODE=false` (já vem no compose) |
+
+O webhook usa `responseMode: lastNode`: o Frappe recebe o resultado **real** do envio, e o histórico do veículo (`alerta_enviado_em`) registra `http_200` só quando a Evolution aceitou a mensagem. Antes ele respondia 200 na hora e o Frappe marcava tudo como enviado.
 
 ---
 
 ## Etapa F — configurar dentro do sistema
 
 1. **Configuracao Despachante**: webhook `http://n8n:5678/webhook/alerta-dom`, URL Evolution `http://evolution:8080`, instância `dom-cristo`, antecedências `45,30,15,5`, **modo simulação ligado**.
+   Confira também em **System Settings** o fuso `America/Sao_Paulo`: o app já configura na instalação, mas o assistente de primeiro login do Frappe pode trocar. Com fuso errado, os alertas diários saem com a data errada.
 2. **Teste do alerta** (sem enviar nada): cadastre um Veículo com `exercicio_licenciamento` do ano corrente e veja o vencimento ser calculado pelo calendário; depois:
 
 ```bash

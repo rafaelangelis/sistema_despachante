@@ -29,12 +29,17 @@ Documento para retomar o trabalho em qualquer máquina, com ou sem o histórico 
   - procuração usava `frappe.db.get_singles_dict`, que o Jinja seguro do Frappe bloqueia (trocado por `frappe.get_doc`);
   - **O.S. zerava honorário/taxa ao salvar**: `fetch_from` sem `fetch_if_empty` sobrescrevia o valor digitado com o do catálogo (que vem zerado).
 - **Build/compose atualizados** para o frappe_docker atual (apps.json como build secret, Python 3.11, MariaDB 10.6, `COMPOSE_FILE` no `.env`).
+- **Alertas ponta a ponta (25/11/2026, WSL)**: Frappe → n8n 2.49.6 → Evolution v2.3.8 pela rede `dom-net`, com instância `dom-cristo` criada e **ainda não pareada**. A rotina real `enviar_alertas_licenciamento` chamou o webhook e registrou `http_500` no histórico do veículo, que é o esperado sem celular conectado. Corrigido nessa etapa:
+  - **fuso vazio** → o Frappe assumia Asia/Kolkata e `today()` virava o dia seguinte a partir das ~18h30 de Brasília (alertas com data errada). Agora `install.configurar_regionais` define `America/Sao_Paulo` + formatos BR, e um patch aplica isso em sites já instalados;
+  - webhook do n8n respondia 200 **antes** de enviar (`onReceived`) e o Frappe marcava tudo como enviado; agora é `lastNode`;
+  - n8n fixado em 2.49.6 com `N8N_BLOCK_ENV_ACCESS_IN_NODE=false` (o 2.x bloqueia o `$env` que o workflow usa);
+  - workflow com `id` fixo, importado e publicado pela CLI.
 
 ## O que ainda NÃO foi feito (em ordem)
 
 | # | Pendência | Observação |
 |---|---|---|
-| 1 | Instalar em produção (VM do Proxmox) | Siga `ops/RUNBOOK-OUTRA-MAQUINA.md`. Etapas C e D já validadas no WSL; falta a VM, a Etapa E (Evolution + n8n) e o restante do aceite |
+| 1 | Instalar em produção (VM do Proxmox) | Siga `ops/RUNBOOK-OUTRA-MAQUINA.md`. Etapas C, D e E (cadeia de alertas) já validadas no WSL; falta a VM, **parear o celular do WhatsApp** (QR) e o restante do aceite |
 | ~~2~~ | ~~Decidir repositório privado ou público~~ | **Resolvido em 25/11/2026: público.** Build e máquinas novas não exigem token |
 | 3 | Confirmar o calendário de licenciamento no site do DETRAN | O de SP/2026 foi semeado a partir da planilha; regra muda a cada ano e pode variar por UF |
 | 4 | Financeiro | Contas a receber, repasse de taxas ao órgão, inadimplência. Opção: módulo Accounts do ERPNext, ou DocType de Recebimento ligado à O.S. |
@@ -53,7 +58,8 @@ Documento para retomar o trabalho em qualquer máquina, com ou sem o histórico 
 
 ## Riscos conhecidos
 
-- O app já roda num Frappe v15 real (WSL), mas a **integração Frappe → n8n → Evolution ainda não foi testada**: a rede Docker entre eles (`dom-net`) é agora o ponto de falha mais provável.
+- O envio real de WhatsApp nunca foi testado: depende de parear um celular. Evolution é API **não oficial**; risco de banimento do número em disparos em volume (ver decisão 3).
+- No WSL, a distro desliga sozinha quando nenhum terminal está aberto e leva o Docker junto: nesse estado o sistema fica fora do ar e a rotina diária de alertas não roda. Serve para desenvolver, não para produção.
 - O frappe_docker muda sem aviso (em 2026 trocou o jeito de passar o `apps.json` e o Python padrão). Se o build sair sem o `dom_despachante`, compare `images/custom/Containerfile` com `ops/scripts/build-imagem.sh`.
 - Os 14 serviços semeados vêm com honorário e taxa zerados: ajuste os valores antes de abrir O.S. de verdade.
 - Escritório pequeno, um site: sem multi-tenancy. Multi-empresa exigiria Frappe multisite.
