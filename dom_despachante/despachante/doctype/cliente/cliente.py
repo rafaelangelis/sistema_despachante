@@ -2,6 +2,7 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
+from frappe.utils import nowdate
 
 from dom_despachante.validadores import (
 	consulta_cep,
@@ -16,6 +17,13 @@ class Cliente(Document):
 		self.normalizar_campos()
 		self.validar_cpf()
 		self.preencher_endereco_por_cep()
+		self.registrar_oposicao_whatsapp()
+
+	def registrar_oposicao_whatsapp(self):
+		if self.nao_enviar_whatsapp and not self.data_oposicao_whatsapp:
+			self.data_oposicao_whatsapp = nowdate()
+		elif not self.nao_enviar_whatsapp:
+			self.data_oposicao_whatsapp = None
 
 	def normalizar_campos(self):
 		if self.nome_completo:

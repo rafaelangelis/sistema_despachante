@@ -31,6 +31,9 @@ def _telefone_whatsapp(cliente):
 		return "", ""
 	doc = frappe.get_doc("Cliente", cliente)
 	nome = (doc.nome_completo or "").split(" ")[0].title()
+	if doc.get("nao_enviar_whatsapp") or doc.get("anonimizado"):
+		# oposicao do titular (LGPD): nenhum alerta nem aviso de O.S.
+		return "", nome
 	telefones = [t for t in (doc.telefones or []) if t.whatsapp and t.numero]
 	if not telefones:
 		return "", nome
