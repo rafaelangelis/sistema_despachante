@@ -186,7 +186,7 @@ docker compose --project-name dom exec backend \
 docker compose --project-name dom exec backend bench use despacho.dom.local
 docker compose --project-name dom exec backend bench --site despacho.dom.local enable-scheduler
 docker compose --project-name dom exec backend bench --site despacho.dom.local set-config host_name http://despacho.dom.local:8080
-docker compose --project-name dom restart backend scheduler queue-short queue-long
+docker compose --project-name dom restart backend scheduler queue-short queue-long frontend
 ```
 
 Acesse `http://IP-DA-VM:8080`. Para nome de domínio interno, aponte `despacho.dom.local` no DNS do MikroTik ou no `hosts` das máquinas.
@@ -301,7 +301,7 @@ cd ~/frappe_docker
 sed -i 's/^CUSTOM_TAG=.*/CUSTOM_TAG=1.1.0/' .env
 docker compose --project-name dom up -d
 docker compose --project-name dom exec backend bench --site despacho.dom.local migrate
-docker compose --project-name dom restart backend scheduler queue-short queue-long
+docker compose --project-name dom restart backend scheduler queue-short queue-long frontend
 ```
 
 ---

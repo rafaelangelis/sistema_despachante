@@ -195,7 +195,7 @@ docker compose --project-name dom exec backend \
 docker compose --project-name dom exec backend bench use despacho.dom.local
 docker compose --project-name dom exec backend bench --site despacho.dom.local enable-scheduler
 docker compose --project-name dom exec backend bench --site despacho.dom.local set-config host_name http://despacho.dom.local:8080
-docker compose --project-name dom restart backend scheduler queue-short queue-long
+docker compose --project-name dom restart backend scheduler queue-short queue-long frontend
 ```
 
 **Checkpoint 1 — aceite desta etapa:**
@@ -300,6 +300,11 @@ docker compose --project-name dom exec backend \
 4. **Serviços**: 14 já vêm semeados — ajuste honorários e taxas.
 5. **Calendário**: SP/2026 vem semeado da sua planilha; **confira no site do DETRAN** antes de confiar.
 6. **Procuração**: imprima uma O.S. e veja o PDF gerado pelo Print Format `procuracao`.
+7. **Calendário do ano seguinte**: em **Calendario Licenciamento → Copiar calendario**, copie o ano atual para o próximo e ajuste as datas pelo site do DETRAN. Sem ele os vencimentos ficam **estimados** (marcados no veículo), e a partir de novembro o sistema avisa toda semana no sininho.
+8. **Financeiro**: na O.S., **Financeiro → Registrar recebimento** (vem com o saldo preenchido). Confira se a O.S. muda para *Parcial/Pago* e imprima o **recibo**. Marque *Taxa paga ao órgão* nos serviços quando pagar a guia. Relatórios: **Contas a Receber**, **Caixa Recebimentos** e **Taxas a Repassar**.
+9. **Painel**: o workspace **Despachante** traz O.S. em aberto/atrasadas, vencimentos em 30 dias, a receber e recebido hoje.
+10. **Aviso de andamento ao cliente** (opcional, vem desligado): em *Configuracao Despachante → Alertas*, ligue "Avisar o cliente quando a O.S. mudar de status" e escolha os status. O envio respeita o modo simulação e o pedido de "não receber WhatsApp" do cliente.
+11. **Consulta pública** `http://IP-DA-VM:8080/status-os`: o cliente digita o número da O.S. e o CPF/CNPJ. Com as portas fechadas para a internet, ela só funciona na rede do escritório. Publicar para fora (domínio + HTTPS) é uma decisão à parte.
 
 ---
 
@@ -349,6 +354,13 @@ Para **recuperar a produção numa máquina nova**: faça as Etapas B a D (sem o
 - [ ] Backup gerado + restore testado em site de teste
 - [ ] Senha do `Administrator` trocada e usuários criados
 - [ ] Portas 8080/5678/8081 fechadas para fora da LAN
+- [ ] Calendário do ano seguinte cadastrado e conferido no DETRAN
+- [ ] Recebimento parcial e total numa O.S. de teste: situação muda para Parcial/Pago e o recibo imprime
+- [ ] Atendente consegue abrir O.S. completa e NÃO consegue exportar clientes nem cancelar recebimento
+- [ ] `/status-os` mostra a O.S. de teste com o CPF certo e recusa com o errado
+- [ ] Testes do app passam no servidor: `bench --site SITE_DE_TESTE run-tests --app dom_despachante` (num site separado, com `allow_tests`)
+
+> **502 depois de reiniciar o backend?** O nginx do `frontend` guarda o IP antigo do backend. Reinicie o `frontend` junto, como já fazem todos os comandos `restart` deste runbook.
 
 ---
 
@@ -375,7 +387,7 @@ sed -i 's/^CUSTOM_TAG=.*/CUSTOM_TAG=1.0.1/' ~/frappe_docker/.env
 cd ~/frappe_docker
 docker compose --project-name dom up -d
 docker compose --project-name dom exec backend bench --site despacho.dom.local migrate
-docker compose --project-name dom restart backend scheduler queue-short queue-long
+docker compose --project-name dom restart backend scheduler queue-short queue-long frontend
 ```
 
 > O script sempre passa `CACHE_BUST`. O Docker não considera o conteúdo do `apps.json` (secret) no cache, e sem isso o build reaproveitava o clone antigo: a imagem "nova" saía com o código velho, e isso foi confirmado em teste. Se você montar o `docker build` à mão, inclua `--build-arg=CACHE_BUST=$(date +%s)`.
@@ -421,7 +433,7 @@ Ciclo de desenvolvimento no WSL:
 ```bash
 cd ~/frappe_docker
 # mudou só Python/Jinja:
-docker compose --project-name dom restart backend scheduler queue-short queue-long
+docker compose --project-name dom restart backend scheduler queue-short queue-long frontend
 # mudou DocType (JSON), patches ou hooks:
 docker compose --project-name dom exec backend bench --site despacho.dom.local migrate
 ```
