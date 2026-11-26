@@ -21,14 +21,15 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-01-01 10:00:00.000000",
+ "modified": "2026-11-25 23:30:00.000000",
  "modified_by": "Administrator",
  "module": "Despachante",
  "name": "Servico",
  "owner": "Administrator",
  "permissions": [
   {"create": 1, "delete": 1, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "System Manager", "share": 1, "write": 1},
-  {"create": 1, "delete": 0, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "Despachante", "share": 1, "write": 1}
+  {"create": 1, "delete": 0, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "Despachante", "share": 1, "write": 1},
+  {"print": 1, "read": 1, "report": 1, "role": "Atendente", "select": 1}
  ],
  "search_fields": "nome_servico,categoria,orgao",
  "sort_field": "modified",
