@@ -48,6 +48,9 @@ jobs:
       - name: Cliente MariaDB e charset
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq mariadb-client
+          # o cliente 11.x exige SSL por padrao e o MariaDB 10.6 do servico nao tem;
+          # o Frappe usa este mesmo cliente para importar o banco no new-site
+          printf '[client]\nskip-ssl\n' > ~/.my.cnf
           mysql -h 127.0.0.1 -P 3306 -u root -proot -e "SET GLOBAL character_set_server = 'utf8mb4'; SET GLOBAL collation_server = 'utf8mb4_unicode_ci';"
 
       - name: Bench com Frappe v15
