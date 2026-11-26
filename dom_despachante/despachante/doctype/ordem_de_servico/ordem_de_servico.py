@@ -61,6 +61,11 @@ class OrdemdeServico(Document):
 		self.definir_conclusao()
 		self.formatar_data_abertura()
 
+	def on_update(self):
+		from dom_despachante.notificacoes import ao_mudar_status
+
+		ao_mudar_status(self)
+
 	def definir_responsavel(self):
 		if not self.funcionario_responsavel:
 			self.funcionario_responsavel = frappe.session.user

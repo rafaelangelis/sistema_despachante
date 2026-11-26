@@ -10,7 +10,7 @@
   "sec_responsavel", "funcionario_responsavel", "matricula",
   "tab_servicos", "servicos", "sec_totais", "total_honorarios", "total_taxas", "cb_totais", "total_geral", "sec_financeiro", "status_pagamento", "valor_recebido", "saldo", "cb_financeiro", "pago", "data_pagamento", "total_taxas_pagas", "taxas_a_repassar",
   "tab_docs", "documentos",
-  "tab_obs", "observacoes"
+  "tab_obs", "observacoes", "avisos_enviados"
  ],
  "fields": [
   {"fieldname": "tab_os", "fieldtype": "Tab Break", "label": "Ordem de servico"},
@@ -46,11 +46,12 @@
   {"fieldname": "tab_docs", "fieldtype": "Tab Break", "label": "Checklist de documentos"},
   {"fieldname": "documentos", "fieldtype": "Table", "label": "Documentos", "options": "OS Documento"},
   {"fieldname": "tab_obs", "fieldtype": "Tab Break", "label": "Observacoes"},
-  {"fieldname": "observacoes", "fieldtype": "Text", "label": "Observacoes"}
+  {"fieldname": "observacoes", "fieldtype": "Text", "label": "Observacoes"},
+  {"fieldname": "avisos_enviados", "fieldtype": "Small Text", "label": "Avisos de andamento enviados ao cliente", "read_only": 1, "no_copy": 1}
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-11-25 23:45:00.000000",
+ "modified": "2026-11-26 00:10:00.000000",
  "modified_by": "Administrator",
  "module": "Despachante",
  "name": "Ordem de Servico",
