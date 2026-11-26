@@ -25,3 +25,9 @@ scheduler_events = {
 
 # Exporta o historico de alteracoes por documento (campo a campo) - nativo do Frappe
 track_changes = True
+# Funcoes disponiveis nos Print Formats (Jinja)
+jinja = {
+	"methods": [
+		"dom_despachante.financeiro.valor_por_extenso",
+	]
+}

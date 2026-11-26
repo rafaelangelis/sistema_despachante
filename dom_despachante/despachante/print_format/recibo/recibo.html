@@ -1,0 +1,54 @@
+{% set cfg = frappe.get_doc("Configuracao Despachante") %}
+{% set cliente = frappe.db.get_value("Cliente", doc.cliente, ["nome_completo", "cpf"], as_dict=True) or {} %}
+{% set os = frappe.db.get_value("Ordem de Servico", doc.ordem_de_servico, ["categoria_servico", "total_geral", "veiculo"], as_dict=True) or {} %}
+{% set placa = frappe.db.get_value("Veiculo", os.veiculo, "placa") if os.veiculo else "" %}
+{% set cpf = cliente.cpf or "" %}
+<div style="font-family: Arial, sans-serif; font-size: 13px; line-height: 1.5;">
+	<table style="width: 100%; border-bottom: 2px solid #333; margin-bottom: 16px;">
+		<tr>
+			<td>
+				<div style="font-size: 16px; font-weight: bold;">{{ cfg.nome_empresa or "" }}</div>
+				{% if cfg.cnpj %}<div>CNPJ {{ cfg.cnpj }}</div>{% endif %}
+				{% if cfg.endereco %}<div>{{ cfg.endereco }}</div>{% endif %}
+				{% if cfg.telefone %}<div>{{ cfg.telefone }}</div>{% endif %}
+			</td>
+			<td style="text-align: right; vertical-align: top;">
+				<div style="font-size: 20px; font-weight: bold;">RECIBO</div>
+				<div>N&ordm; {{ doc.name }}</div>
+				<div style="font-size: 18px; font-weight: bold; margin-top: 6px;">{{ frappe.format_value(doc.valor, {"fieldtype": "Currency"}) }}</div>
+			</td>
+		</tr>
+	</table>
+
+	{% if doc.docstatus == 2 %}
+	<div style="border: 2px solid #c00; color: #c00; text-align: center; font-weight: bold; padding: 6px; margin-bottom: 12px;">
+		RECEBIMENTO CANCELADO - SEM VALOR
+	</div>
+	{% elif doc.docstatus == 0 %}
+	<div style="border: 2px dashed #999; color: #666; text-align: center; padding: 6px; margin-bottom: 12px;">
+		RASCUNHO - recebimento ainda nao confirmado
+	</div>
+	{% endif %}
+
+	<p>
+		Recebemos de <b>{{ cliente.nome_completo or "" }}</b>
+		{% if cpf|length == 11 %}, CPF {{ cpf[:3] }}.{{ cpf[3:6] }}.{{ cpf[6:9] }}-{{ cpf[9:] }}{% endif %},
+		a importancia de <b>{{ frappe.format_value(doc.valor, {"fieldtype": "Currency"}) }}</b>
+		({{ valor_por_extenso(doc.valor) }}),
+		referente a ordem de servico <b>{{ doc.ordem_de_servico }}</b>
+		({{ os.categoria_servico or "" }}{% if placa %}, veiculo {{ placa }}{% endif %}),
+		pago em <b>{{ doc.forma_pagamento }}</b>.
+	</p>
+	{% if doc.observacao %}<p>Observacao: {{ doc.observacao }}</p>{% endif %}
+
+	<p>
+		Total da O.S.: {{ frappe.format_value(os.total_geral, {"fieldtype": "Currency"}) }} &middot;
+		Saldo apos este recebimento: {{ frappe.format_value((doc.saldo_antes or 0) - (doc.valor or 0), {"fieldtype": "Currency"}) }}
+	</p>
+
+	<p style="margin-top: 24px;">{{ frappe.utils.formatdate(doc.data, "dd/MM/yyyy") }}</p>
+
+	<div style="margin-top: 48px; width: 60%; border-top: 1px solid #333; text-align: center; padding-top: 4px;">
+		{{ cfg.nome_empresa or "" }}{% if doc.recebido_por %} &middot; {{ frappe.db.get_value("User", doc.recebido_por, "full_name") or doc.recebido_por }}{% endif %}
+	</div>
+</div>
